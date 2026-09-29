@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Zeus 2.1</title>
+<title>Zeus 2.2</title>
 <meta name="description" content="Multi-timeframe crypto day-trading terminal with an in-browser AI copilot.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap">
@@ -336,6 +336,11 @@ button.primary{background-size:250% 250%;background-image:linear-gradient(135deg
 .chips button:nth-child(2){animation-delay:.05s}.chips button:nth-child(3){animation-delay:.1s}.chips button:nth-child(4){animation-delay:.15s}.chips button:nth-child(5){animation-delay:.2s}
 .composer textarea:focus{box-shadow:0 0 0 3px rgba(110,168,255,.15),0 0 30px -8px rgba(124,108,255,.7)}
 body.nofx .panel::after,body.nofx .top::after{display:none}
+.side{font:600 10.5px var(--mono);padding:1px 6px;border-radius:5px;letter-spacing:.04em}
+.side.l{background:var(--up-bg);color:var(--up)}.side.s{background:var(--down-bg);color:var(--down)}
+.tag.perp{color:var(--gold);border-color:rgba(243,213,138,.35);background:rgba(243,213,138,.07)}
+.liqwarn{animation:pulse .8s infinite;font-weight:600}
+input[type=range]{accent-color:#f3d58a;padding:0;border:0;background:none}
 .chatlog>*{flex-shrink:0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -356,7 +361,7 @@ body.nofx .panel::after,body.nofx .top::after{display:none}
       <rect x="1" y="1" width="38" height="38" rx="11" fill="url(#zg3)" stroke="url(#zg1)" stroke-width="1.4"/>
       <path d="M11 10H29V13L20.5 19H25L14 31L17.5 22H13L21 13H11Z" fill="url(#zg2)" filter="url(#zglow)"/>
     </svg>
-    <span class="word">ZEUS</span><span class="ver" id="ver" title="Version and roadmap">2.1</span><span class="buildtag" id="buildTag">LIVE BUILD</span>
+    <span class="word">ZEUS</span><span class="ver" id="ver" title="Version and roadmap">2.2</span><span class="buildtag" id="buildTag">LIVE BUILD</span>
   </div>
   <span class="vsep"></span>
   <input id="symbol" list="symlist" spellcheck="false" title="Binance spot symbol, e.g. BTCUSDT">
@@ -461,6 +466,13 @@ body.nofx .panel::after,body.nofx .top::after{display:none}
           <div class="field"><span>Cash</span><span class="mono" id="paperCash"></span></div>
           <button class="sm" id="resetPaper">Reset paper account</button>
         </fieldset>
+        <fieldset><legend>Perpetual futures (paper)</legend>
+          <div class="field"><span>Taker fee % (on notional)</span><input type="number" data-set="perp.fee" step="0.01" min="0"></div>
+          <div class="field"><span>Maintenance margin %</span><input type="number" data-set="perp.mmr" step="0.1" min="0"></div>
+          <div class="field"><span>Funding %/8h if live rate unavailable</span><input type="number" data-set="perp.funding" step="0.005"></div>
+          <div class="field"><span>Max leverage allowed</span><input type="number" data-set="perp.maxLev" step="1" min="1" max="50"></div>
+          <p class="note">Isolated margin. Liquidation price = entry × (1 − 1/leverage + maintenance) for longs, mirrored for shorts. Funding uses Binance's live USDⓈ-M rate and settles at 00:00, 08:00 and 16:00 UTC. Prices come from the spot feed, so they can differ slightly from the perp mark price.</p>
+        </fieldset>
         <fieldset><legend>Live trading (Binance spot)</legend>
           <div class="field"><span>Exchange</span><select data-set="liveHost"><option value="testnet">Testnet (fake funds)</option><option value="com">Binance.com (REAL)</option><option value="us">Binance.US (REAL)</option></select></div>
           <div class="field"><span>API key</span><input type="password" data-set="apiKey" autocomplete="off"></div>
@@ -494,13 +506,26 @@ body.nofx .panel::after,body.nofx .top::after{display:none}
         <label>Symbol<input id="edSym" list="symlist" style="width:120px;text-transform:uppercase"></label>
         <label>Runs when this TF candle closes<select id="edTf"></select></label>
       </div>
+      <div class="frow" style="margin-top:10px">
+        <label>Market<select id="edMarket"><option value="spot">Spot (long only)</option><option value="perp">Perpetual futures (paper, long + short)</option></select></label>
+        <label id="edLevWrap">Leverage <b id="edLevV" class="mono">5x</b><input type="range" id="edLev" min="1" max="50" step="1" style="width:220px"></label>
+        <span class="note" id="edLevNote" style="flex:1;min-width:200px;margin:0"></span>
+      </div>
       <div id="edRules">
-        <h4>Enter long when <u>all</u> of these are true</h4>
+        <h4 class="up">Enter long when <u>all</u> of these are true</h4>
         <div id="edEntry"></div>
         <button class="sm" data-add="entry">+ Entry condition</button>
         <h4>Exit when <u>any</u> of these is true</h4>
         <div id="edExit"></div>
         <button class="sm" data-add="exit">+ Exit condition</button>
+        <div id="edShort">
+          <h4 class="down">Enter short when <u>all</u> of these are true</h4>
+          <div id="edShortEntry"></div>
+          <button class="sm" data-add="shortEntry">+ Short entry condition</button>
+          <h4>Exit short when <u>any</u> of these is true</h4>
+          <div id="edShortExit"></div>
+          <button class="sm" data-add="shortExit">+ Short exit condition</button>
+        </div>
         <p class="note">Each condition can use its own timeframe, so you can combine a 1h trend filter with a 5m trigger. Stop loss, take profit and trailing stop from the Risk section always apply as well.</p>
       </div>
       <div id="edCode" class="hidden">
@@ -517,7 +542,9 @@ ctx.ind.supertrend(candles,10,3) -> {line,dir}   adx(candles,14) -> {adx,pdi,mdi
 ctx.ind.highest(v,p) lowest(v,p)
 ctx.last(arr, n=0)   ctx.crossOver(a,b)   ctx.crossUnder(a,b)   (a/b = arrays or numbers)
 ctx.trend('1h') -> score -5..+5     ctx.trendDetail('1h')     ctx.confluence() -> -5..+5
-ctx.position -> null | {entry, qty, sl, tp, pnlPct, openedAt}
+ctx.position -> null | {dir (1 long, -1 short), lev, entry, qty, sl, tp, liq, pnlPct, openedAt}
+ctx.market -> 'spot' | 'perp'   ctx.leverage
+ctx.short({sizePct, slPct, tpPct}) -> open a short (perp strategies only)
 ctx.state    -> object that survives between calls
 ctx.buy({slPct, tpPct, sl, tp, trail, sizePct})   // all optional; overrides Risk settings
 ctx.exit(reason)     ctx.log(...msg)</pre></details>
@@ -676,7 +703,9 @@ function SHARED(){
         case 'xa':{const ap=val(cd.a,tPrev),bp=val(cd.b,tPrev);return ap<=bp&&a>b;}
         case 'xb':{const ap=val(cd.a,tPrev),bp=val(cd.b,tPrev);return ap>=bp&&a<b;}}
       return false;};
-    if(!pos){const e=s.entry||[];if(e.length&&e.every(test))return[{type:'buy',reason:'entry rules'}];}
+    if(!pos){const e=s.entry||[];if(e.length&&e.every(test))return[{type:'buy',reason:'long entry rules'}];
+      const se=s.shortEntry||[];if(s.market==='perp'&&se.length&&se.every(test))return[{type:'short',reason:'short entry rules'}];}
+    else if(pos.dir<0){const x=(s.shortExit||[]).find(test);if(x)return[{type:'exit',reason:'short exit rule'}];}
     else{const x=(s.exit||[]).find(test);if(x)return[{type:'exit',reason:'exit rule'}];}
     return[];}
 
@@ -697,7 +726,9 @@ function SHARED(){
       crossUnder:(a,b)=>pick(a,1)>=pick(b,1)&&pick(a,0)<pick(b,0),
       trend:tf=>trendScore(get(tf)),trendDetail:tf=>trendDetail(get(tf).slice(-WINDOW)),confluence:()=>confluence(view),
       position:pos,state,
+      market:s.market||'spot',leverage:s.market==='perp'?(+s.lev||1):1,
       buy:(o={})=>{actions.push(Object.assign({},o,{type:'buy',reason:o.reason||'code'}));},
+      short:(o={})=>{if(s.market==='perp')actions.push(Object.assign({},o,{type:'short',reason:o.reason||'code'}));},
       exit:(reason)=>{actions.push({type:'exit',reason:reason||'code exit'});},
       log:(...m)=>{if(logs.length<50)logs.push(m.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));}};
     ctx.sell=ctx.exit;
@@ -710,18 +741,21 @@ function SHARED(){
     return{actions:evalRules(s,view,pos,trig[n-1].T,trig[n-2].T),logs:[]};}
 
   /* ---- risk plan (shared by live + backtest) ---- */
-  function riskPlan(risk,act,price,atrVal,equity){risk=risk||{};
+  function riskPlan(risk,act,price,atrVal,equity,dir){risk=risk||{};dir=dir||1;
     let quote=risk.sizeType==='fixed'?+risk.size:equity*(+(act.sizePct??risk.size))/100;
     quote=Math.max(0,Math.min(quote,equity));
     let sl=null,tp=null;
-    if(act.sl)sl=+act.sl;else if(act.slPct)sl=price*(1-act.slPct/100);
-    else if(risk.slType==='pct'&&+risk.sl>0)sl=price*(1-risk.sl/100);
-    else if(risk.slType==='atr'&&+risk.sl>0&&atrVal>0)sl=price-risk.sl*atrVal;
-    if(act.tp)tp=+act.tp;else if(act.tpPct)tp=price*(1+act.tpPct/100);
-    else if(risk.tpType==='pct'&&+risk.tp>0)tp=price*(1+risk.tp/100);
-    else if(risk.tpType==='atr'&&+risk.tp>0&&atrVal>0)tp=price+risk.tp*atrVal;
-    if(sl!=null&&!(sl<price))sl=null;if(tp!=null&&!(tp>price))tp=null;
+    if(act.sl)sl=+act.sl;else if(act.slPct)sl=price*(1-dir*act.slPct/100);
+    else if(risk.slType==='pct'&&+risk.sl>0)sl=price*(1-dir*risk.sl/100);
+    else if(risk.slType==='atr'&&+risk.sl>0&&atrVal>0)sl=price-dir*risk.sl*atrVal;
+    if(act.tp)tp=+act.tp;else if(act.tpPct)tp=price*(1+dir*act.tpPct/100);
+    else if(risk.tpType==='pct'&&+risk.tp>0)tp=price*(1+dir*risk.tp/100);
+    else if(risk.tpType==='atr'&&+risk.tp>0&&atrVal>0)tp=price+dir*risk.tp*atrVal;
+    if(sl!=null&&!(dir*(price-sl)>0))sl=null;if(tp!=null&&!(dir*(tp-price)>0))tp=null;
     return{quote,sl,tp,trail:+(act.trail??risk.trail)||0};}
+
+  // isolated margin: the position is liquidated when the loss eats the margin down to the maintenance level
+  function liqPrice(entry,dir,lev,mmrPct){const m=(+mmrPct||0)/100;return dir>0?entry*(1-1/lev+m):entry*(1+1/lev-m);}
 
   /* ---- backtester ---- */
   function backtest(s,data,opt,progress){
@@ -730,29 +764,46 @@ function SHARED(){
     const fee=(+opt.fee||0)/100,slip=(+opt.slip||0)/100,risk=s.risk||{};
     let cash=+opt.equity,pos=null,lastExitIdx=-1e9,i;const trades=[],eq=[],state={},logs=[];
     let start=base.findIndex(b=>b.t>=opt.startTime);if(start<0)start=0;start=Math.max(start,60);
-    const closePos=(price,reason,bar)=>{const px=price*(1-slip),gross=pos.qty*px,f=gross*fee;cash+=gross-f;
-      const pnl=gross-f-pos.cost;trades.push({entryT:pos.t,exitT:bar.t,entry:pos.entry,exit:px,qty:pos.qty,pnl,pnlPct:pnl/pos.cost*100,reason});
+    const perp=s.market==='perp',P=opt.perp||{},lev=perp?Math.max(1,Math.min(50,+s.lev||1)):1;
+    const pfee=perp?(+P.fee||0)/100:fee,fund=(+P.funding||0)/100,F8=8*3600e3;let liqs=0,fundPaid=0;
+    const closePos=(price,reason,bar)=>{
+      if(!perp){const px=price*(1-slip),gross=pos.qty*px,f=gross*fee;cash+=gross-f;
+        const pnl=gross-f-pos.cost;trades.push({entryT:pos.t,exitT:bar.t,dir:1,entry:pos.entry,exit:px,qty:pos.qty,pnl,pnlPct:pnl/pos.cost*100,reason});}
+      else{const liq=reason==='LIQUIDATED',px=liq?price:price*(1-pos.dir*slip),gross=pos.dir*(px-pos.entry)*pos.qty,f=pos.qty*px*pfee;
+        const back=liq?0:Math.max(0,pos.cost+gross-f);cash+=back;if(liq)liqs++;
+        const pnl=back-pos.cost-pos.fee-pos.funding;trades.push({entryT:pos.t,exitT:bar.t,dir:pos.dir,lev,entry:pos.entry,exit:px,qty:pos.qty,pnl,pnlPct:pnl/pos.cost*100,reason});}
       pos=null;lastExitIdx=i;};
     for(i=start;i<base.length;i++){const bar=base[i];
-      if(pos){
+      if(pos&&perp){const d=pos.dir;
+        if(fund&&Math.floor(bar.T/F8)>Math.floor(base[i-1].T/F8)){const x=d*pos.qty*bar.c*fund;cash-=x;pos.funding+=x;fundPaid+=x;}
+        if(d>0?bar.l<=pos.liq:bar.h>=pos.liq)closePos(pos.liq,'LIQUIDATED',bar);
+        else if(pos.sl&&(d>0?bar.l<=pos.sl:bar.h>=pos.sl))closePos(d>0?Math.min(bar.o,pos.sl):Math.max(bar.o,pos.sl),'SL',bar);
+        else if(pos.tp&&(d>0?bar.h>=pos.tp:bar.l<=pos.tp))closePos(d>0?Math.max(bar.o,pos.tp):Math.min(bar.o,pos.tp),'TP',bar);
+        else if(pos.trail){if(d>0){pos.peak=Math.max(pos.peak,bar.h);const ts=pos.peak*(1-pos.trail/100);if(!pos.sl||ts>pos.sl)pos.sl=ts;}
+          else{pos.peak=Math.min(pos.peak,bar.l);const ts=pos.peak*(1+pos.trail/100);if(!pos.sl||ts<pos.sl)pos.sl=ts;}}
+      }
+      else if(pos){
         if(pos.sl&&bar.l<=pos.sl)closePos(Math.min(bar.o,pos.sl),'SL',bar);
         else if(pos.tp&&bar.h>=pos.tp)closePos(Math.max(bar.o,pos.tp),'TP',bar);
         else if(pos.trail){pos.peak=Math.max(pos.peak,bar.h);const ts=pos.peak*(1-pos.trail/100);if(!pos.sl||ts>pos.sl)pos.sl=ts;}
       }
       const view={};
       for(const tf of tfs){const a=data[tf];let p=ptr[tf];while(p<a.length&&a[p].T<=bar.T)p++;ptr[tf]=p;view[tf]=a.slice(Math.max(0,p-WINDOW),p);}
-      const pinfo=pos?{entry:pos.entry,qty:pos.qty,sl:pos.sl,tp:pos.tp,openedAt:pos.t,pnlPct:(bar.c/pos.entry-1)*100}:null;
+      const pinfo=pos?{dir:pos.dir||1,lev,entry:pos.entry,qty:pos.qty,sl:pos.sl,tp:pos.tp,liq:pos.liq||null,openedAt:pos.t,pnlPct:(pos.dir||1)*(bar.c/pos.entry-1)*100*lev}:null;
       const r=evalStrategy(s,view,pinfo,state);
       if(r.logs.length&&logs.length<200)r.logs.forEach(l=>logs.push(l));
       for(const a of r.actions){
         if(a.type==='exit'&&pos)closePos(bar.c,a.reason||'signal',bar);
-        else if(a.type==='buy'&&!pos&&i-lastExitIdx>=(+risk.cooldown||0)){
-          const px=bar.c*(1+slip),at=atr(view[s.tf],14),plan=riskPlan(risk,a,px,at[at.length-1],cash);
-          if(plan.quote<=0)continue;
-          pos={t:bar.t,entry:px,qty:plan.quote*(1-fee)/px,cost:plan.quote,sl:plan.sl,tp:plan.tp,trail:plan.trail,peak:px};
-          cash-=plan.quote;}
+        else if((a.type==='buy'||(a.type==='short'&&perp))&&!pos&&i-lastExitIdx>=(+risk.cooldown||0)){
+          const d=a.type==='short'?-1:1,px=bar.c*(1+d*slip),at=atr(view[s.tf],14);
+          if(!perp){const plan=riskPlan(risk,a,px,at[at.length-1],cash);if(plan.quote<=0)continue;
+            pos={t:bar.t,dir:1,entry:px,qty:plan.quote*(1-fee)/px,cost:plan.quote,sl:plan.sl,tp:plan.tp,trail:plan.trail,peak:px};cash-=plan.quote;}
+          else{const plan=riskPlan(risk,a,px,at[at.length-1],cash/(1+lev*pfee),d);if(plan.quote<=0)continue;
+            const notional=plan.quote*lev,f=notional*pfee;
+            pos={t:bar.t,dir:d,entry:px,qty:notional/px,cost:plan.quote,fee:f,funding:0,sl:plan.sl,tp:plan.tp,trail:plan.trail,peak:px,liq:liqPrice(px,d,lev,P.mmr)};
+            cash-=plan.quote+f;}}
       }
-      eq.push({t:bar.t,v:cash+(pos?pos.qty*bar.c:0)});
+      eq.push({t:bar.t,v:cash+(pos?(perp?pos.cost+pos.dir*(bar.c-pos.entry)*pos.qty:pos.qty*bar.c):0)});
       if(progress&&(i-start)%300===0)progress((i-start)/(base.length-start));
     }
     if(pos){i=base.length-1;closePos(base[i].c,'end of test',base[i]);eq[eq.length-1].v=cash;}
@@ -762,10 +813,11 @@ function SHARED(){
     const step=Math.max(1,Math.ceil(eq.length/2000));
     return{trades,logs,equity:eq.filter((_,k)=>k%step===0||k===eq.length-1),startT:base[start].t,endT:base[base.length-1].t,
       stats:{trades:n,winRate:n?wins.length/n*100:0,net:cash-opt.equity,netPct:(cash/opt.equity-1)*100,pf:gl?gp/gl:(gp?Infinity:0),
-        maxDD:mdd,avg:n?trades.reduce((a,t)=>a+t.pnlPct,0)/n:0,bh:(base[base.length-1].c/base[start].c-1)*100,final:cash}};}
+        maxDD:mdd,avg:n?trades.reduce((a,t)=>a+t.pnlPct,0)/n:0,bh:(base[base.length-1].c/base[start].c-1)*100,final:cash,
+        perp,lev,liqs,funding:fundPaid,longs:trades.filter(t=>t.dir>0).length,shorts:trades.filter(t=>t.dir<0).length}};}
 
   return{TFS,TF_MS,WINDOW,OPERANDS,sma,ema,rma,rsi,macd,atr,bb,supertrend,adx,vwap,highest,lowest,
-    trendDetail,trendScore,confluence,evalStrategy,riskPlan,backtest,compile};
+    trendDetail,trendScore,confluence,evalStrategy,riskPlan,liqPrice,backtest,compile};
 }
 
 /* Worker entry. Stringified together with SHARED; LIB is defined by the worker prelude. */
@@ -796,7 +848,7 @@ const LIVE_HOSTS={testnet:'https://testnet.binance.vision',com:'https://api.bina
 const OP_LABEL={'>':'>','<':'<','>=':'≥','<=':'≤','=':'=','xa':'crosses above','xb':'crosses below'};
 
 const DEFAULT_SETTINGS={mode:'paper',liveHost:'testnet',apiKey:'',apiSecret:'',exchangeStop:true,dataHost:'auto',
-  paper:{start:10000,fee:0.1,slip:0.05},risk:{maxOpen:3,dailyLoss:3},sound:true,notify:false,
+  paper:{start:10000,fee:0.1,slip:0.05},perp:{fee:0.05,mmr:0.4,funding:0.01,maxLev:50},risk:{maxOpen:3,dailyLoss:3},sound:true,notify:false,
   ai:{model:'Qwen2.5-3B-Instruct',autoLoad:false},fx:true,
   symbol:'BTCUSDT',chartTf:'5m',overlays:{ema9:true,ema21:true,ema50:false,ema200:false,st:true,bb:false,vwap:false}};
 
@@ -864,6 +916,12 @@ function PRESETS(sym){return [
     exit:[{a:O('close'),op:'<',b:O('ll',[10])}],
     risk:{...DEFAULT_RISK,slType:'atr',sl:2,tpType:'atr',tp:4}},
   {name:'Custom code: MTF momentum',tf:'5m',type:'code',code:CODE_TEMPLATE,entry:[],exit:[],risk:{...DEFAULT_RISK}},
+  {name:'Perp 5x: EMA trend both ways',tf:'5m',type:'rules',market:'perp',lev:5,
+    entry:[{a:O('ema',[9]),op:'xa',b:O('ema',[21])},{a:O('trend',[],'1h'),op:'>=',b:num(2)}],
+    exit:[{a:O('ema',[9]),op:'xb',b:O('ema',[21])}],
+    shortEntry:[{a:O('ema',[9]),op:'xb',b:O('ema',[21])},{a:O('trend',[],'1h'),op:'<=',b:num(-2)}],
+    shortExit:[{a:O('ema',[9]),op:'xa',b:O('ema',[21])}],
+    risk:{...DEFAULT_RISK,size:5,slType:'atr',sl:1.5,tpType:'atr',tp:3,cooldown:3}},
 ].map(p=>({id:uid(),symbol:sym,enabled:false,code:p.code||CODE_TEMPLATE,...p}));}
 
 /* ---------- state ---------- */
@@ -879,7 +937,7 @@ function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{
   S.orders=S.orders.slice(0,500);S.trades=S.trades.slice(0,1000);S.log=S.log.slice(0,300);
   try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){showBanner('Could not save to browser storage: '+e.message);}},250);}
 
-const RT={auto:false,feeds:{},price:{},runtime:{},signals:[],lastExit:{},inflight:{},account:null,btMarkers:null,timeOffset:null,activeData:null};
+const RT={perp:{},fundTimer:null,auto:false,feeds:{},price:{},runtime:{},signals:[],lastExit:{},inflight:{},account:null,btMarkers:null,timeOffset:null,activeData:null};
 
 /* ---------- activity log / alerts ---------- */
 function log(msg,kind='info'){S.log.unshift({t:Date.now(),msg,kind});if(S.log.length>300)S.log.length=300;save();scheduleRender('activity');}
@@ -980,7 +1038,7 @@ async function runStrategies(sym,tfs){const f=RT.feeds[sym];if(!f||!f.ready)retu
   const list=S.strategies.filter(s=>s.enabled&&s.symbol===sym&&tfs.has(s.tf));if(!list.length)return;
   const view=f.view();
   for(const s of list){const rt=RT.runtime[s.id]||(RT.runtime[s.id]={});const pos=S.positions.find(p=>p.sid===s.id);
-    const pinfo=pos?{entry:pos.entry,qty:pos.qty,sl:pos.sl,tp:pos.tp,openedAt:pos.openedAt,pnlPct:(RT.price[sym]/pos.entry-1)*100}:null;
+    const pinfo=pos?{dir:pos.dir||1,lev:pos.lev||1,entry:pos.entry,qty:pos.qty,sl:pos.sl,tp:pos.tp,liq:pos.liq||null,openedAt:pos.openedAt,pnlPct:posPnl(pos)/pos.cost*100}:null;
     try{const r=await Engine.call({type:'eval',strategy:stratPayload(s),view,position:pinfo});
       rt.lastRun=Date.now();rt.error=null;
       r.logs.forEach(l=>log(`[${s.name}] ${l}`));
@@ -988,12 +1046,13 @@ async function runStrategies(sym,tfs){const f=RT.feeds[sym];if(!f||!f.ready)retu
     catch(e){rt.error=e.message;log(`[${s.name}] error: ${e.message}`,'error');}
   }
   scheduleRender('strategies');}
-const stratPayload=s=>({id:s.id,name:s.name,symbol:s.symbol,tf:s.tf,type:s.type,entry:s.entry,exit:s.exit,code:s.code,risk:s.risk});
+const stratPayload=s=>({id:s.id,name:s.name,symbol:s.symbol,tf:s.tf,type:s.type,entry:s.entry,exit:s.exit,code:s.code,risk:s.risk,
+  market:s.market||'spot',lev:s.market==='perp'?Math.max(1,Math.min(+S.settings.perp.maxLev||50,+s.lev||1)):1,shortEntry:s.shortEntry||[],shortExit:s.shortExit||[]});
 async function handleAction(s,a){const pos=S.positions.find(p=>p.sid===s.id);const rt=RT.runtime[s.id];const price=RT.price[s.symbol];
-  if(a.type==='buy'&&!pos){
-    rt.lastSignal={t:Date.now(),side:'BUY'};addSignal(s.symbol,'buy',s.name);
-    if(!RT.auto){log(`SIGNAL BUY ${s.symbol} @ ${fp(price)} from "${s.name}" (auto-trade is off)`,'signal');alertUser(`Signal: BUY ${s.symbol}`,s.name+' (auto-trade off)','signal');return;}
-    log(`SIGNAL BUY ${s.symbol} @ ${fp(price)} from "${s.name}"`,'signal');
+  if((a.type==='buy'||(a.type==='short'&&s.market==='perp'))&&!pos){const side=a.type==='short'?'SHORT':s.market==='perp'?'LONG':'BUY';
+    rt.lastSignal={t:Date.now(),side};addSignal(s.symbol,a.type==='short'?'short':'buy',s.name);
+    if(!RT.auto){log(`SIGNAL ${side} ${s.symbol} @ ${fp(price)} from "${s.name}" (auto-trade is off)`,'signal');alertUser(`Signal: ${side} ${s.symbol}`,s.name+' (auto-trade off)','signal');return;}
+    log(`SIGNAL ${side} ${s.symbol} @ ${fp(price)} from "${s.name}"`,'signal');
     await openPosition(s,a);}
   else if(a.type==='exit'&&pos){
     rt.lastSignal={t:Date.now(),side:'EXIT'};addSignal(s.symbol,'exit',s.name);
@@ -1003,7 +1062,11 @@ function addSignal(sym,side,name){FX.at('#brand',{width:1.1,forks:1,flash:.45});
 
 /* ---------- risk manager + execution ---------- */
 function startOfDay(){const d=new Date();d.setHours(0,0,0,0);return d.getTime();}
-function paperEquity(){return S.paper.cash+S.positions.filter(p=>p.mode==='paper').reduce((a,p)=>a+p.qty*(RT.price[p.symbol]??p.entry),0);}
+// spot: value = qty*price. perp: value = margin + direction*(price-entry)*qty
+const isPerp=p=>p.market==='perp';
+function posPnl(p,px){px=px??RT.price[p.symbol]??p.entry;return isPerp(p)?p.dir*(px-p.entry)*p.qty:p.qty*px-p.cost;}
+function posValue(p,px){px=px??RT.price[p.symbol]??p.entry;return isPerp(p)?p.cost+p.dir*(px-p.entry)*p.qty:p.qty*px;}
+function paperEquity(){return S.paper.cash+S.positions.filter(p=>p.mode==='paper').reduce((a,p)=>a+posValue(p),0);}
 function modeEquity(){return S.settings.mode==='live'?(RT.account?.equity??0):paperEquity();}
 function dayCheck(){const today=new Date().toDateString();
   if(S.day.date!==today)S.day={date:today,startEq:{paper:paperEquity(),live:RT.account?.equity??null},halted:false};
@@ -1018,7 +1081,10 @@ async function openPosition(s,a){
   if(S.day.halted)return log(`[${s.name}] entry blocked: daily loss limit reached`,'warn');
   if(S.positions.length>=+S.settings.risk.maxOpen)return log(`[${s.name}] entry blocked: max open positions (${S.settings.risk.maxOpen})`,'warn');
   const cd=(+s.risk.cooldown||0)*TF_MS[s.tf];if(RT.lastExit[s.id]&&Date.now()-RT.lastExit[s.id]<cd)return log(`[${s.name}] entry blocked: cooldown`,'warn');
+  const perp=s.market==='perp';
+  if(perp&&S.settings.mode==='live')return log(`[${s.name}] perps are paper-only in this version. Switch to Paper mode to trade this strategy.`,'warn');
   const live=S.settings.mode==='live';const broker=live?Live:Paper;
+  if(perp){RT.inflight[s.id]=true;try{await openPerp(s,a,price);}finally{RT.inflight[s.id]=false;}return;}
   RT.inflight[s.id]=true;
   try{const f=RT.feeds[s.symbol];const at=LIB.atr(f.closed(s.tf),14);
     const avail=await broker.available(s.symbol);const plan=LIB.riskPlan(s.risk,a,price,at[at.length-1],avail);
@@ -1036,7 +1102,24 @@ async function openPosition(s,a){
   catch(e){S.orders.unshift({t:Date.now(),symbol:s.symbol,side:'BUY',type:'MARKET',qty:null,price,mode:live?S.settings.liveHost:'paper',status:'REJECTED: '+e.message,sname:s.name});
     log(`[${s.name}] BUY failed: ${e.message}`,'error');alertUser('Order failed',e.message,'error');save();scheduleRender('orders');}
   finally{RT.inflight[s.id]=false;}}
+async function openPerp(s,a,price){const dir=a.type==='short'?-1:1,lev=stratPayload(s).lev,side=dir>0?'LONG':'SHORT',P=S.settings.perp;
+  try{const f=RT.feeds[s.symbol];const at=LIB.atr(f.closed(s.tf),14);
+    const plan=LIB.riskPlan(s.risk,a,price,at[at.length-1],S.paper.cash/(1+lev*P.fee/100),dir);
+    if(plan.quote<5)throw new Error(`margin ${money(plan.quote)} is too small (check equity / size settings)`);
+    const r=PaperPerp.open(dir,plan.quote,lev,price);
+    const pos={id:uid(),sid:s.id,sname:s.name,symbol:s.symbol,mode:'paper',venue:`paper perp ${lev}x`,market:'perp',dir,lev,tf:s.tf,
+      qty:r.qty,entry:r.price,cost:plan.quote,openFee:r.fee,funding:0,lastFund:Date.now(),liq:LIB.liqPrice(r.price,dir,lev,P.mmr),
+      sl:plan.sl,tp:plan.tp,trail:plan.trail,peak:r.price,openedAt:Date.now()};
+    const shift=r.price-price;if(pos.sl)pos.sl+=shift;if(pos.tp)pos.tp+=shift;
+    S.positions.push(pos);
+    S.orders.unshift({t:Date.now(),symbol:s.symbol,side:dir>0?'BUY':'SELL',type:`MARKET ${lev}x`,qty:r.qty,price:r.price,mode:pos.venue,status:'FILLED',sname:s.name,orderId:r.orderId});
+    log(`${side} ${fp(r.qty)} ${s.symbol} @ ${fp(r.price)} ${lev}x · margin ${money(plan.quote)} · notional ${money(plan.quote*lev)} · liq ${fp(pos.liq)} [paper perp] "${s.name}"`,'trade');
+    alertUser(`${side} ${s.symbol} ${lev}x @ ${fp(r.price)}`,`${s.name} · liq ${fp(pos.liq)}`,'trade');FX.at('#price',{flash:1,forks:4,width:2,rgb:dir>0?'52,211,153':'248,113,113'});
+    save();ensureFeeds();ensureFunding();drawMarkers();scheduleRender('all');}
+  catch(e){S.orders.unshift({t:Date.now(),symbol:s.symbol,side:dir>0?'BUY':'SELL',type:`MARKET ${lev}x`,qty:null,price,mode:'paper perp',status:'REJECTED: '+e.message,sname:s.name});
+    log(`[${s.name}] ${side} failed: ${e.message}`,'error');alertUser('Order failed',e.message,'error');save();scheduleRender('orders');}}
 async function closePosition(pos,reason){if(pos.closing)return;pos.closing=true;
+  if(isPerp(pos))return closePerp(pos,reason);
   const broker=pos.mode==='live'?Live:Paper;
   try{const r=await broker.sell(pos,RT.price[pos.symbol]??pos.entry);
     const pnl=r.proceeds-pos.cost;
@@ -1047,7 +1130,44 @@ async function closePosition(pos,reason){if(pos.closing)return;pos.closing=true;
     alertUser(`Closed ${pos.symbol} ${pct(trade.pnlPct)}`,`${reason} · ${money(pnl)}`,pnl>=0?'trade':'error');FX.at('#price',{rgb:pnl>=0?'243,213,138':'248,113,113',flash:.8});
     save();dayCheck();ensureFeeds();drawMarkers();scheduleRender('all');}
   catch(e){pos.closing=false;pos.error=e.message;log(`SELL ${pos.symbol} failed: ${e.message}`,'error');alertUser('Close failed',e.message,'error');scheduleRender('positions');}}
+function closePerp(pos,reason){const liq=reason==='LIQUIDATED';
+  const r=PaperPerp.close(pos,RT.price[pos.symbol]??pos.entry,liq);
+  const pnl=r.proceeds-pos.cost-pos.openFee-pos.funding;
+  const trade={...pos,exit:r.price,exitAt:Date.now(),reason,pnl,pnlPct:pnl/pos.cost*100};delete trade.closing;
+  S.trades.unshift(trade);S.positions=S.positions.filter(p=>p.id!==pos.id);RT.lastExit[pos.sid]=Date.now();
+  S.orders.unshift({t:Date.now(),symbol:pos.symbol,side:pos.dir>0?'SELL':'BUY',type:liq?'LIQUIDATION':'MARKET reduce-only',qty:pos.qty,price:r.price,mode:pos.venue,status:'FILLED',sname:pos.sname});
+  log(`${liq?'LIQUIDATED':'CLOSE '+(pos.dir>0?'LONG':'SHORT')} ${pos.symbol} ${pos.lev}x @ ${fp(r.price)} (${reason}) PnL ${money(pnl)} (${pct(trade.pnlPct)} on margin) "${pos.sname}"`,liq?'error':'trade');
+  alertUser(liq?`Liquidated: ${pos.symbol} ${pos.lev}x`:`Closed ${pos.symbol} ${pct(trade.pnlPct)}`,liq?`margin lost ${money(pos.cost)}. Lower leverage or use a tighter stop.`:`${reason} · ${money(pnl)}`,pnl>=0?'trade':'error');
+  FX.at('#price',{rgb:liq?'248,113,113':pnl>=0?'243,213,138':'248,113,113',flash:liq?1.2:.8,forks:liq?6:3,width:liq?2.6:1.6});
+  save();dayCheck();ensureFeeds();drawMarkers();scheduleRender('all');}
+const PaperPerp={
+  open(dir,margin,lev,price){const st=S.settings.paper,P=S.settings.perp;const px=price*(1+dir*st.slip/100),notional=margin*lev,fee=notional*P.fee/100;
+    if(margin+fee>S.paper.cash)throw new Error('not enough paper cash for margin + fee');S.paper.cash-=margin+fee;
+    return{price:px,qty:notional/px,fee,orderId:'PP'+uid()};},
+  close(pos,price,liq){const st=S.settings.paper,P=S.settings.perp;const px=liq?pos.liq:price*(1-pos.dir*st.slip/100);
+    const gross=pos.dir*(px-pos.entry)*pos.qty,fee=pos.qty*px*P.fee/100,back=liq?0:Math.max(0,pos.cost+gross-fee);
+    S.paper.cash+=back;return{price:px,proceeds:back};}};
+// funding: perps settle every 8h (00:00, 08:00, 16:00 UTC). Longs pay shorts when the rate is positive.
+async function refreshFunding(){const syms=[...new Set(S.positions.filter(isPerp).map(p=>p.symbol).concat(S.strategies.filter(x=>x.market==='perp'&&x.enabled).map(x=>x.symbol)))];
+  for(const sym of syms){try{const r=await fetch('https://fapi.binance.com/fapi/v1/premiumIndex?symbol='+sym);if(!r.ok)continue;const j=await r.json();
+      RT.perp[sym]={mark:+j.markPrice,rate:+j.lastFundingRate,next:+j.nextFundingTime,at:Date.now()};}catch{}}
+  scheduleRender('positions');}
+function settleFunding(){const F8=8*3600e3,now=Date.now();let changed=false;
+  for(const p of S.positions){if(!isPerp(p)||p.closing)continue;const last=p.lastFund||p.openedAt;
+    const n=Math.floor(now/F8)-Math.floor(last/F8);if(n<=0)continue;
+    const rate=RT.perp[p.symbol]?.rate??S.settings.perp.funding/100,px=RT.price[p.symbol]??p.entry,x=n*p.dir*p.qty*px*rate;
+    S.paper.cash-=x;p.funding+=x;p.lastFund=now;changed=true;
+    log(`Funding ${p.symbol} ${p.dir>0?'LONG':'SHORT'}: ${x>=0?'paid':'received'} ${money(Math.abs(x))} (rate ${(rate*100).toFixed(4)}%)`,'trade');}
+  if(changed){save();scheduleRender('all');}}
+function ensureFunding(){if(RT.fundTimer)return;refreshFunding();RT.fundTimer=setInterval(()=>{refreshFunding();settleFunding();},60000);}
 function checkStops(sym,price){for(const p of S.positions){if(p.symbol!==sym||p.closing)continue;
+    if(isPerp(p)){const d=p.dir;
+      if(d>0?price<=p.liq:price>=p.liq){closePosition(p,'LIQUIDATED');continue;}
+      if(p.trail){if(d>0&&price>p.peak){p.peak=price;const ts=price*(1-p.trail/100);if(!p.sl||ts>p.sl)p.sl=ts;}
+        if(d<0&&price<p.peak){p.peak=price;const ts=price*(1+p.trail/100);if(!p.sl||ts<p.sl)p.sl=ts;}}
+      if(p.sl&&(d>0?price<=p.sl:price>=p.sl))closePosition(p,p.trail&&d*(p.peak-p.entry)>0?'trailing stop':'stop loss');
+      else if(p.tp&&(d>0?price>=p.tp:price<=p.tp))closePosition(p,'take profit');
+      continue;}
     if(p.trail&&price>p.peak){p.peak=price;const ts=price*(1-p.trail/100);if(!p.sl||ts>p.sl)p.sl=ts;}
     if(p.sl&&price<=p.sl)closePosition(p,p.trail&&p.peak>p.entry?'trailing stop':'stop loss');
     else if(p.tp&&price>=p.tp)closePosition(p,'take profit');}}
@@ -1166,13 +1286,15 @@ function chartUpdate(cd){if(!candleSeries)return;try{candleSeries.update(toBar(c
 function drawMarkers(){if(!candleSeries)return;const sym=S.settings.symbol,tf=S.settings.chartTf,ms=TF_MS[tf];
   const f=RT.feeds[sym];if(!f||!f.ready)return;const first=f.c[tf][0]?.t||0;const bt=t=>chartTime(Math.floor(t/ms)*ms);const m=[];
   const add=(t,obj)=>{if(t>=first)m.push({time:bt(t),...obj});};
-  RT.signals.filter(s=>s.sym===sym).forEach(s=>add(s.t,s.side==='buy'?{position:'belowBar',color:'#3b82f6',shape:'circle',text:'sig'}:{position:'aboveBar',color:'#3b82f6',shape:'circle',text:'sig'}));
-  S.positions.filter(p=>p.symbol===sym).forEach(p=>add(p.openedAt,{position:'belowBar',color:'#22c55e',shape:'arrowUp',text:'BUY'}));
-  S.trades.filter(t=>t.symbol===sym).slice(0,200).forEach(t=>{add(t.openedAt,{position:'belowBar',color:'#22c55e',shape:'arrowUp',text:'BUY'});
-    add(t.exitAt,{position:'aboveBar',color:t.pnl>=0?'#22c55e':'#ef4444',shape:'arrowDown',text:pct(t.pnlPct)});});
+  RT.signals.filter(s=>s.sym===sym).forEach(s=>add(s.t,s.side!=='exit'&&s.side!=='short'?{position:'belowBar',color:'#3b82f6',shape:'circle',text:'sig'}:{position:'aboveBar',color:'#3b82f6',shape:'circle',text:'sig'}));
+  const entryMk=(t,d,lev,c)=>d<0?{position:'aboveBar',color:c||'#f87171',shape:'arrowDown',text:'SHORT'+(lev>1?' '+lev+'x':'')}:{position:'belowBar',color:c||'#22c55e',shape:'arrowUp',text:(lev>1?'LONG '+lev+'x':'BUY')};
+  const exitMk=(d,pnl,txt,c)=>d<0?{position:'belowBar',color:c||(pnl>=0?'#22c55e':'#ef4444'),shape:'arrowUp',text:txt}:{position:'aboveBar',color:c||(pnl>=0?'#22c55e':'#ef4444'),shape:'arrowDown',text:txt};
+  S.positions.filter(p=>p.symbol===sym).forEach(p=>add(p.openedAt,entryMk(0,p.dir||1,p.lev||1)));
+  S.trades.filter(t=>t.symbol===sym).slice(0,200).forEach(t=>{add(t.openedAt,entryMk(0,t.dir||1,t.lev||1));
+    add(t.exitAt,exitMk(t.dir||1,t.pnl,t.reason==='LIQUIDATED'?'LIQ':pct(t.pnlPct)));});
   if(RT.btMarkers&&RT.btMarkers.sym===sym&&RT.btMarkers.tf===tf)RT.btMarkers.trades.forEach(t=>{
-    add(t.entryT,{position:'belowBar',color:'#a78bfa',shape:'arrowUp',text:'bt'});
-    add(t.exitT,{position:'aboveBar',color:t.pnl>=0?'#a78bfa':'#f472b6',shape:'arrowDown',text:pct(t.pnlPct)});});
+    add(t.entryT,{...entryMk(0,t.dir||1,1,'#a78bfa'),text:t.dir<0?'bt S':'bt'});
+    add(t.exitT,exitMk(t.dir||1,t.pnl,t.reason==='LIQUIDATED'?'LIQ':pct(t.pnlPct),t.pnl>=0?'#a78bfa':'#f472b6'));});
   m.sort((a,b)=>a.time-b.time);try{candleSeries.setMarkers(m);}catch{}}
 
 /* ---------- rendering ---------- */
@@ -1192,7 +1314,7 @@ function renderHeader(){$$('#mode button').forEach(b=>b.classList.toggle('on',b.
   const live=S.settings.mode==='live';const lb=$('#liveBadge');lb.classList.toggle('hidden',!live);
   lb.textContent=live?(S.settings.liveHost==='testnet'?'LIVE · TESTNET':'LIVE MONEY'):'';lb.style.background=S.settings.liveHost==='testnet'?'#b45309':'';
   $('#auto').checked=RT.auto;
-  const upnl=S.positions.reduce((a,p)=>a+(p.qty*(RT.price[p.symbol]??p.entry)-p.cost),0);
+  const upnl=S.positions.reduce((a,p)=>a+posPnl(p),0);
   const today=S.trades.filter(t=>t.exitAt>=startOfDay()&&t.mode===S.settings.mode).reduce((a,t)=>a+t.pnl,0);
   const eq=live?(RT.account?`${RT.account.quote} free <b>${fp(RT.account.equity)}</b>`:'account not loaded'):`Equity <b>${money(paperEquity())}</b>`;
   $('#equity').innerHTML=`${eq} · Open PnL <b class="${cls(upnl)}">${money(upnl)}</b> · Today <b class="${cls(today)}">${money(today)}</b>`;
@@ -1225,24 +1347,29 @@ function renderStrategies(){const el=$('#stratList');$('#cntStrat').textContent=
   if(!S.strategies.length){el.innerHTML='<div class="empty">No strategies yet. Add a preset below or click + New.</div>';return;}
   el.innerHTML=S.strategies.map(s=>{const rt=RT.runtime[s.id]||{};const pos=S.positions.find(p=>p.sid===s.id);
     const rules=s.type==='code'?'<i>custom code</i>':
-      `<span class="up">IN</span> ${(s.entry||[]).map(c=>esc(describeCond(c,s.tf))).join(' <span class="muted">&amp;</span> ')||'—'}<br><span class="down">OUT</span> ${(s.exit||[]).map(c=>esc(describeCond(c,s.tf))).join(' <span class="muted">or</span> ')||'SL/TP only'}`;
+      `<span class="up">${s.market==='perp'?'LONG':'IN'}</span> ${(s.entry||[]).map(c=>esc(describeCond(c,s.tf))).join(' <span class="muted">&amp;</span> ')||'—'}<br><span class="muted">OUT</span> ${(s.exit||[]).map(c=>esc(describeCond(c,s.tf))).join(' <span class="muted">or</span> ')||'SL/TP only'}`+
+      (s.market==='perp'&&(s.shortEntry||[]).length?`<br><span class="down">SHORT</span> ${s.shortEntry.map(c=>esc(describeCond(c,s.tf))).join(' <span class="muted">&amp;</span> ')}<br><span class="muted">COVER</span> ${(s.shortExit||[]).map(c=>esc(describeCond(c,s.tf))).join(' <span class="muted">or</span> ')||'SL/TP only'}`:'');
     let st='';if(rt.error)st=`<div class="st down">⚠ ${esc(rt.error)}</div>`;
     else if(pos)st=`<div class="st up">● In position since ${tstr(pos.openedAt)}</div>`;
     else if(rt.lastSignal)st=`<div class="st" style="color:var(--accent)">Last signal ${rt.lastSignal.side} at ${tstr(rt.lastSignal.t)}</div>`;
     else if(s.enabled)st=`<div class="st muted">Watching. Evaluates on each ${s.tf} close${rt.lastRun?' · last '+tstr(rt.lastRun):''}</div>`;
     return `<div class="scard ${s.enabled?'on':''}" data-id="${s.id}"><div class="t">
       <label class="switch" title="Enable"><input type="checkbox" data-act="toggle" ${s.enabled?'checked':''}><span class="track"></span></label>
-      <span class="name" title="${esc(s.name)}">${esc(s.name)}</span><span class="tag">${s.type==='code'?'code':'rules'}</span></div>
+      <span class="name" title="${esc(s.name)}">${esc(s.name)}</span>${s.market==='perp'?`<span class="tag perp">perp ${stratPayload(s).lev}x</span>`:''}<span class="tag">${s.type==='code'?'code':'rules'}</span></div>
       <div class="meta">${esc(s.symbol)} · trigger ${s.tf} · ${esc(riskText(s.risk))}</div>
       <div class="rules">${rules}</div>${st}
       <div class="acts"><button class="sm" data-act="edit">Edit</button><button class="sm" data-act="bt">Backtest</button><button class="sm ghost" data-act="dup">Duplicate</button><button class="sm ghost" data-act="del">Delete</button></div></div>`;}).join('');
   $('#btStrat').innerHTML=S.strategies.map(s=>`<option value="${s.id}">${esc(s.name)} (${esc(s.symbol)} ${s.tf})</option>`).join('');}
 function renderPositions(){$('#cntPos').textContent=S.positions.length;const el=$('#tab-positions');
   if(!S.positions.length){el.innerHTML='<div class="empty">No open positions. Turn on a strategy and Auto-trade to start.</div>';return;}
-  el.innerHTML=`<table><thead><tr><th>Symbol</th><th>Strategy</th><th>Venue</th><th>Qty</th><th>Entry</th><th>Price</th><th>PnL</th><th>SL</th><th>TP</th><th>Age</th><th></th></tr></thead><tbody>${
-    S.positions.map(p=>{const px=RT.price[p.symbol];const pnl=px?p.qty*px-p.cost:NaN;const pp=pnl/p.cost*100;
-      return `<tr><td><b>${p.symbol}</b></td><td>${esc(p.sname)}</td><td>${p.venue}</td><td>${fp(p.qty)}</td><td>${fp(p.entry)}</td><td>${fp(px)}</td>
-      <td class="${cls(pnl)}">${money(pnl)} (${pct(pp)})</td><td>${fp(p.sl)}${p.trail?' <span class="muted">trail</span>':''}</td><td>${fp(p.tp)}</td><td>${dur(Date.now()-p.openedAt)}</td>
+  el.innerHTML=`<table><thead><tr><th>Symbol</th><th>Side</th><th>Strategy</th><th>Venue</th><th>Qty</th><th>Entry</th><th>Price</th><th>PnL</th><th>Liq.</th><th>SL</th><th>TP</th><th>Funding</th><th>Age</th><th></th></tr></thead><tbody>${
+    S.positions.map(p=>{const px=RT.price[p.symbol];const pnl=px?posPnl(p,px):NaN;const pp=pnl/p.cost*100;const perp=isPerp(p);
+      const dist=perp&&px?Math.abs(px-p.liq)/px*100:null;const fr=RT.perp[p.symbol];
+      return `<tr><td><b>${p.symbol}</b></td><td>${perp?`<span class="side ${p.dir>0?'l':'s'}">${p.dir>0?'LONG':'SHORT'} ${p.lev}x</span>`:'<span class="side l">BUY</span>'}</td><td>${esc(p.sname)}</td><td>${p.venue}</td><td>${fp(p.qty)}</td><td>${fp(p.entry)}</td><td>${fp(px)}</td>
+      <td class="${cls(pnl)}">${money(pnl)} (${pct(pp)})</td>
+      <td>${perp?`<span class="${dist<2?'down liqwarn':dist<5?'warn':''}" title="${dist!=null?dist.toFixed(2)+'% away':''}">${fp(p.liq)}</span>`:'<span class="muted">—</span>'}</td>
+      <td>${fp(p.sl)}${p.trail?' <span class="muted">trail</span>':''}</td><td>${fp(p.tp)}</td>
+      <td>${perp?`<span class="${cls(-p.funding)}">${money(-p.funding)}</span>${fr?` <span class="muted" title="current funding rate">${(fr.rate*100).toFixed(4)}%</span>`:''}`:'<span class="muted">—</span>'}</td><td>${dur(Date.now()-p.openedAt)}</td>
       <td>${p.error?`<span class="down" title="${esc(p.error)}">⚠</span> `:''}<button class="sm danger" data-close="${p.id}" ${p.closing?'disabled':''}>${p.closing?'Closing…':'Close'}</button></td></tr>`;}).join('')}</tbody></table>`;}
 function renderOrders(){const el=$('#tab-orders');if(!S.orders.length){el.innerHTML='<div class="empty">No orders yet.</div>';return;}
   el.innerHTML=`<table><thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Type</th><th>Qty</th><th>Price</th><th>Venue</th><th>Strategy</th><th>Status</th></tr></thead><tbody>${
@@ -1254,8 +1381,8 @@ function renderTrades(){const el=$('#tab-trades');const tr=S.trades.filter(t=>t.
     <div class="tile"><div class="k">Win rate</div><div class="v">${(w/tr.length*100).toFixed(1)}%</div></div>
     <div class="tile"><div class="k">Net PnL</div><div class="v ${cls(net)}">${money(net)}</div></div>
     <div class="tile"><div class="k">Today</div><div class="v ${cls(today)}">${money(today)}</div></div></div>
-    <table><thead><tr><th>Closed</th><th>Symbol</th><th>Strategy</th><th>Entry</th><th>Exit</th><th>PnL</th><th>%</th><th>Reason</th><th>Held</th></tr></thead><tbody>${
-    tr.slice(0,300).map(t=>`<tr><td>${dtstr(t.exitAt)}</td><td>${t.symbol}</td><td>${esc(t.sname)}</td><td>${fp(t.entry)}</td><td>${fp(t.exit)}</td><td class="${cls(t.pnl)}">${money(t.pnl)}</td><td class="${cls(t.pnl)}">${pct(t.pnlPct)}</td><td>${esc(t.reason)}</td><td>${dur(t.exitAt-t.openedAt)}</td></tr>`).join('')}</tbody></table>`;}
+    <table><thead><tr><th>Closed</th><th>Symbol</th><th>Side</th><th>Strategy</th><th>Entry</th><th>Exit</th><th>PnL</th><th>%</th><th>Reason</th><th>Held</th></tr></thead><tbody>${
+    tr.slice(0,300).map(t=>`<tr><td>${dtstr(t.exitAt)}</td><td>${t.symbol}</td><td>${isPerp(t)?`<span class="side ${t.dir>0?'l':'s'}">${t.dir>0?'LONG':'SHORT'} ${t.lev}x</span>`:'<span class="side l">BUY</span>'}</td><td>${esc(t.sname)}</td><td>${fp(t.entry)}</td><td>${fp(t.exit)}</td><td class="${cls(t.pnl)}">${money(t.pnl)}</td><td class="${cls(t.pnl)}">${pct(t.pnlPct)}</td><td>${esc(t.reason)}</td><td>${dur(t.exitAt-t.openedAt)}</td></tr>`).join('')}</tbody></table>`;}
 function renderActivity(){$('#cntAct').textContent=S.log.length;const el=$('#tab-activity');
   el.innerHTML=S.log.length?S.log.slice(0,300).map(l=>`<div class="row"><span class="time">${dtstr(l.t)}</span><span class="${l.kind}">${esc(l.msg)}</span></div>`).join(''):'<div class="empty">Nothing yet.</div>';}
 function openTab(name){$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));$$('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+name));}
@@ -1273,15 +1400,21 @@ function operandEl(op,onChange){const w=document.createElement('span');w.classNa
     w.querySelectorAll('input').forEach(inp=>inp.oninput=()=>{op.p[+inp.dataset.i]=+inp.value;onChange();});
     const t=w.querySelector('.tfsel');if(t)t.onchange=()=>{op.tf=t.value;onChange();};};
   draw();return w;}
-function renderConds(which){const host=$(which==='entry'?'#edEntry':'#edExit');host.innerHTML='';const list=draft[which];
-  if(!list.length)host.innerHTML=`<div class="note">${which==='entry'?'No entry conditions: this strategy will never enter.':'No exit rule. Positions exit on SL / TP / trailing stop only.'}</div>`;
+const COND_HOST={entry:'#edEntry',exit:'#edExit',shortEntry:'#edShortEntry',shortExit:'#edShortExit'};
+function renderConds(which){const host=$(COND_HOST[which]);host.innerHTML='';const list=draft[which]||(draft[which]=[]);const isEntry=which==='entry'||which==='shortEntry';
+  if(!list.length)host.innerHTML=`<div class="note">${isEntry?(which==='entry'?'No long entry conditions: this strategy never goes long.':'No short entry conditions: this strategy never goes short.'):'No exit rule. Positions exit on SL / TP / trailing stop only.'}</div>`;
   list.forEach((c,idx)=>{const row=document.createElement('div');row.className='cond';
     row.append(operandEl(c.a,()=>{}));
     const sel=document.createElement('select');sel.className='opsel';sel.innerHTML=Object.entries(OP_LABEL).map(([k,v])=>`<option value="${k}" ${k===c.op?'selected':''}>${v}</option>`).join('');
     sel.onchange=()=>c.op=sel.value;row.append(sel,operandEl(c.b,()=>{}));
     const del=document.createElement('button');del.className='sm ghost del';del.textContent='✕';del.title='Remove';del.onclick=()=>{list.splice(idx,1);renderConds(which);};
     row.append(del);host.append(row);
-    if(idx<list.length-1){const j=document.createElement('div');j.className='andor';j.textContent=which==='entry'?'AND':'OR';host.append(j);}});}
+    if(idx<list.length-1){const j=document.createElement('div');j.className='andor';j.textContent=isEntry?'AND':'OR';host.append(j);}});}
+function renderMarket(){const perp=$('#edMarket').value==='perp',lev=+$('#edLev').value,maxLev=+S.settings.perp.maxLev||50;
+  $('#edLev').max=maxLev;$('#edLevWrap').classList.toggle('hidden',!perp);$('#edShort').classList.toggle('hidden',!perp);$('#edLevV').textContent=lev+'x';
+  const liqMove=(1/lev-S.settings.perp.mmr/100)*100;
+  $('#edLevNote').innerHTML=!perp?'Spot buys the coin. No shorting and no leverage.':
+    `<span class="${lev>=20?'down':lev>=10?'warn':'muted'}">At ${lev}x, a <b>${liqMove.toFixed(2)}%</b> move against you liquidates the position${lev>=20?'. That\'s one normal candle on a volatile day.':'.'}</span> Size % sets the margin; notional = margin × leverage.`;}
 function setEdType(t){draft.type=t;$$('#edType button').forEach(b=>b.classList.toggle('on',b.dataset.v===t));
   $('#edRules').classList.toggle('hidden',t!=='rules');$('#edCode').classList.toggle('hidden',t!=='code');
   if(t==='code'){ensureCodeEditor();setTimeout(()=>cm&&cm.refresh(),0);}}
@@ -1295,9 +1428,12 @@ function openEditor(s){draft=clone(s||{id:null,name:'My strategy',symbol:S.setti
   draft.risk={...DEFAULT_RISK,...draft.risk};draft.code=draft.code||CODE_TEMPLATE;
   $('#edTitle').textContent=s?'Edit strategy':'New strategy';$('#edName').value=draft.name;$('#edSym').value=draft.symbol;$('#edTf').innerHTML=tfOptions(draft.tf);
   const r=draft.risk;$('#rSizeType').value=r.sizeType;$('#rSize').value=r.size;$('#rSlType').value=r.slType;$('#rSl').value=r.sl;$('#rTpType').value=r.tpType;$('#rTp').value=r.tp;$('#rTrail').value=r.trail;$('#rCool').value=r.cooldown;
-  $('#edErr').textContent='';renderConds('entry');renderConds('exit');ensureCodeEditor();setCode(draft.code);setEdType(draft.type);$('#dlg').showModal();if(cm)setTimeout(()=>cm.refresh(),0);}
+  draft.market=draft.market||'spot';draft.lev=draft.lev||5;draft.shortEntry=draft.shortEntry||[];draft.shortExit=draft.shortExit||[];
+  $('#edMarket').value=draft.market;$('#edLev').value=draft.lev;renderMarket();
+  $('#edErr').textContent='';renderConds('entry');renderConds('exit');renderConds('shortEntry');renderConds('shortExit');ensureCodeEditor();setCode(draft.code);setEdType(draft.type);$('#dlg').showModal();if(cm)setTimeout(()=>cm.refresh(),0);}
 function saveEditor(){const err=$('#edErr');err.textContent='';
   draft.name=$('#edName').value.trim()||'Untitled';draft.symbol=$('#edSym').value.trim().toUpperCase();draft.tf=$('#edTf').value;
+  draft.market=$('#edMarket').value;draft.lev=Math.max(1,Math.min(+S.settings.perp.maxLev||50,Math.round(+$('#edLev').value||1)));
   if(!/^[A-Z0-9]{5,20}$/.test(draft.symbol)){err.textContent='Enter a valid Binance symbol, e.g. BTCUSDT';return;}
   draft.risk={sizeType:$('#rSizeType').value,size:+$('#rSize').value,slType:$('#rSlType').value,sl:+$('#rSl').value,tpType:$('#rTpType').value,tp:+$('#rTp').value,trail:+$('#rTrail').value||0,cooldown:+$('#rCool').value||0};
   if(!(draft.risk.size>0)){err.textContent='Position size must be above 0';return;}
@@ -1305,7 +1441,7 @@ function saveEditor(){const err=$('#edErr');err.textContent='';
   draft.code=getCode();
   if(draft.type==='code'){try{new Function(draft.code);}catch(e){err.textContent='Code syntax error: '+e.message;return;}
     if(!/function\s+onCandle\s*\(/.test(draft.code)&&!/onCandle\s*=/.test(draft.code)){err.textContent='Code must define function onCandle(ctx) { ... }';return;}}
-  else if(!draft.entry.length){err.textContent='Add at least one entry condition';return;}
+  else if(!draft.entry.length&&!(draft.market==='perp'&&draft.shortEntry.length)){err.textContent=draft.market==='perp'?'Add at least one long or short entry condition':'Add at least one entry condition';return;}
   if(draft.id){const i=S.strategies.findIndex(x=>x.id===draft.id);const old=S.strategies[i];
     if(S.positions.some(p=>p.sid===draft.id)&&old.symbol!==draft.symbol){err.textContent='Close this strategy\'s open position before changing its symbol';return;}
     S.strategies[i]={...draft};Engine.w&&Engine.w.postMessage({type:'reset',id:0,sid:draft.id});}
@@ -1314,7 +1450,7 @@ function saveEditor(){const err=$('#edErr');err.textContent='';
 
 /* ---------- backtest ---------- */
 function strategyTfs(s){if(s.type==='code')return [...TFS];const set=new Set([s.tf]);let conf=false;
-  [...(s.entry||[]),...(s.exit||[])].forEach(c=>[c.a,c.b].forEach(o=>{if(o.k==='conf')conf=true;else if(o.k!=='num'&&o.tf)set.add(o.tf);}));
+  [...(s.entry||[]),...(s.exit||[]),...(s.shortEntry||[]),...(s.shortExit||[])].forEach(c=>[c.a,c.b].forEach(o=>{if(o.k==='conf')conf=true;else if(o.k!=='num'&&o.tf)set.add(o.tf);}));
   return conf?[...TFS]:[...set];}
 const btOpts=()=>({bars:+$('#btBars').value,equity:+$('#btEq').value||10000,fee:+$('#btFee').value,slip:+$('#btSlip').value});
 // Shared by the Backtest tab and the assistant. onStatus(text, progress0to1)
@@ -1324,7 +1460,7 @@ async function backtestStrategy(s,o,onStatus=()=>{}){const st=$('#btStatus'),pro
   try{const end=Date.now(),start=end-o.bars*TF_MS[s.tf],data={};
     for(const tf of strategyTfs(s)){say(`Downloading ${s.symbol} ${tf} history…`);data[tf]=await fetchRange(s.symbol,tf,start-(WINDOW+60)*TF_MS[tf],end);}
     say('Running…',0);const t0=performance.now();
-    const res=await Engine.backtest(stratPayload(s),data,{equity:o.equity,fee:o.fee,slip:o.slip,startTime:start},p=>say(`Running… ${(p*100).toFixed(0)}%`,p));
+    const res=await Engine.backtest(stratPayload(s),data,{equity:o.equity,fee:o.fee,slip:o.slip,startTime:start,perp:S.settings.perp},p=>say(`Running… ${(p*100).toFixed(0)}%`,p));
     say(`${s.name} · ${s.symbol} ${s.tf} · ${dtstr(res.startT)} → ${dtstr(res.endT)} · ${((performance.now()-t0)/1000).toFixed(1)}s`,1);
     renderBacktest(res,s);RT.btMarkers={sym:s.symbol,tf:s.tf,trades:res.trades};$('#btShow').classList.remove('hidden');
     S.lastBacktest={sid:s.id,name:s.name,symbol:s.symbol,tf:s.tf,bars:o.bars,at:Date.now(),...res.stats};save();
@@ -1337,7 +1473,8 @@ async function runBacktest(){const s=S.strategies.find(x=>x.id===$('#btStrat').v
 function renderBacktest(res,s){const x=res.stats;
   const tile=(k,v,c='')=>`<div class="tile"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`;
   $('#btTiles').innerHTML=tile('Net profit',`${money(x.net)} <span style="font-size:12px">${pct(x.netPct)}</span>`,cls(x.net))+tile('Trades',x.trades)+tile('Win rate',x.winRate.toFixed(1)+'%')+
-    tile('Profit factor',isFinite(x.pf)?x.pf.toFixed(2):'∞',x.pf>=1?'up':'down')+tile('Max drawdown','−'+x.maxDD.toFixed(2)+'%','down')+tile('Avg trade',pct(x.avg),cls(x.avg))+tile('Buy & hold',pct(x.bh),cls(x.bh));
+    tile('Profit factor',isFinite(x.pf)?x.pf.toFixed(2):'∞',x.pf>=1?'up':'down')+tile('Max drawdown','−'+x.maxDD.toFixed(2)+'%','down')+tile(x.perp?'Avg trade (on margin)':'Avg trade',pct(x.avg),cls(x.avg))+tile('Buy & hold',pct(x.bh),cls(x.bh))+
+    (x.perp?tile('Long / short',`${x.longs} / ${x.shorts}`)+tile('Liquidations',x.liqs,x.liqs?'down':'')+tile('Funding paid',money(x.funding),cls(-x.funding)):'');
   if(!btChart){btChart=LightweightCharts.createChart($('#btChart'),{autoSize:true,layout:{background:{type:'solid',color:'transparent'},textColor:'#7d8394',fontSize:11,fontFamily:'Geist Mono, ui-monospace, monospace'},
       grid:{vertLines:{visible:false},horzLines:{color:'rgba(255,255,255,.04)'}},rightPriceScale:{borderColor:'rgba(255,255,255,.07)'},timeScale:{borderColor:'rgba(255,255,255,.07)',timeVisible:true}});
     btSeries=btChart.addAreaSeries({lineColor:'#8aa8ff',topColor:'rgba(120,140,255,.35)',bottomColor:'rgba(120,140,255,0)',lineWidth:2,priceLineVisible:false});}
@@ -1393,14 +1530,15 @@ const AI_ACTIONS=['create_strategy','create_code_strategy','update_strategy','en
 const AI_SCHEMA={type:'object',properties:{reply:{type:'string'},actions:{type:'array',items:{type:'object',properties:{
   type:{type:'string',enum:AI_ACTIONS},id:{type:'string'},name:{type:'string'},symbol:{type:'string'},tf:{type:'string',enum:TFS},
   entry:{type:'array',items:{type:'string'}},exit:{type:'array',items:{type:'string'}},code:{type:'string'},
+  market:{type:'string',enum:['spot','perp']},leverage:{type:'integer'},short_entry:{type:'array',items:{type:'string'}},short_exit:{type:'array',items:{type:'string'}},
   size_pct:{type:'number'},sl_pct:{type:'number'},sl_atr:{type:'number'},tp_pct:{type:'number'},tp_atr:{type:'number'},trail_pct:{type:'number'},cooldown:{type:'integer'},
   enabled:{type:'boolean'},on:{type:'boolean'},bars:{type:'integer'},max_open:{type:'integer'},daily_loss:{type:'number'},tab:{type:'string'}},required:['type']}}},required:['reply','actions']};
-const AI_SYSTEM=`You are Zeus, the trading copilot inside a browser app for crypto day trading on Binance spot (long only). You design strategies, run backtests, read multi-timeframe trends from STATE, and operate the app. Be concise, concrete and honest. You are not a financial advisor.
+const AI_SYSTEM=`You are Zeus, the trading copilot inside a browser app for crypto day trading: Binance spot (long only) and paper perpetual futures (long and short, leverage 1-50x). You design strategies, run backtests, read multi-timeframe trends from STATE, and operate the app. Be concise, concrete and honest. You are not a financial advisor.
 
 ALWAYS answer with one JSON object: {"reply": "<message, markdown ok>", "actions": [...]}. Use "actions": [] when only talking.
 
 ACTIONS
-- create_strategy: name, symbol, tf, entry[], exit[], size_pct, sl_pct or sl_atr, tp_pct or tp_atr, trail_pct, cooldown (created disabled)
+- create_strategy: name, symbol, tf, entry[], exit[], market, leverage, short_entry[], short_exit[], size_pct, sl_pct or sl_atr, tp_pct or tp_atr, trail_pct, cooldown (created disabled)
 - create_code_strategy: name, symbol, tf, code, plus risk fields (only if rules can't express it)
 - update_strategy: id + only the fields to change (entry/exit replace the whole list)
 - enable_strategy: id, enabled
@@ -1422,7 +1560,8 @@ Examples: "EMA(9) crosses_above EMA(21)", "TREND@1h >= 2", "RSI(14)@15m < 70", "
 CODE: JavaScript "function onCandle(ctx){...}". ctx.closes(tf), ctx.tf(tf) candles {o,h,l,c,v}, ctx.ind.ema/sma/rsi(values,p), ctx.ind.atr(candles,p), ctx.ind.macd(v,12,26,9)->{macd,signal,hist}, ctx.ind.bb(v,20,2)->{upper,mid,lower}, ctx.ind.supertrend(candles,10,3)->{line,dir}, ctx.ind.adx(candles,14)->{adx,pdi,mdi}, ctx.last(arr), ctx.crossOver(a,b), ctx.crossUnder(a,b), ctx.trend(tf), ctx.confluence(), ctx.position, ctx.state, ctx.buy({slPct,tpPct,trail}), ctx.exit(reason), ctx.log(...).
 
 GUIDELINES
-- Long only. Always set a stop (sl_pct or sl_atr). Day-trade defaults: size_pct 10, sl 0.5-2%, tp 1-4%.
+- market "spot" = long only. market "perp" = paper perpetual futures: set leverage (default 3-5, warn the user above 10x: at L x a (100/L)% move liquidates), and short_entry (ALL true) / short_exit (ANY true) with the same condition format. Shorting needs market "perp".
+- Always set a stop (sl_pct or sl_atr); with leverage the stop must sit well inside the liquidation distance. Day-trade defaults: size_pct 10, sl 0.5-2%, tp 1-4%.
 - Trigger on a low timeframe and filter with TREND@ a higher one.
 - After creating or changing a strategy, also add a backtest action for it.
 - Never invent numbers: read trend and results from STATE; backtest results arrive after your answer.
@@ -1435,9 +1574,9 @@ user: build a 5m strategy that buys dips when the 1h trend is up
 function aiState(){const sym=S.settings.symbol,f=RT.feeds[sym];let trend='loading',conf='?';
   if(f&&f.ready){trend=TFS.map(tf=>{const d=LIB.trendDetail(f.closed(tf));return d?`${tf} ${d.score>0?'+':''}${d.score} (RSI ${d.rsi.toFixed(0)}, ADX ${d.adx.toFixed(0)})`:`${tf} n/a`;}).join(' | ');conf=LIB.confluence(f.view());}
   const strat=S.strategies.slice(0,14).map(s=>{const inPos=S.positions.some(p=>p.sid===s.id);
-    const body=s.type==='code'?'code strategy':`entry: ${s.entry.map(condToDsl).join(' & ')} | exit: ${s.exit.map(condToDsl).join(' or ')||'none'}`;
+    const body=(s.market==='perp'?`PERP ${stratPayload(s).lev}x | `:'spot | ')+(s.type==='code'?'code strategy':`entry: ${s.entry.map(condToDsl).join(' & ')||'none'} | exit: ${s.exit.map(condToDsl).join(' or ')||'none'}`+(s.market==='perp'?` | short_entry: ${(s.shortEntry||[]).map(condToDsl).join(' & ')||'none'} | short_exit: ${(s.shortExit||[]).map(condToDsl).join(' or ')||'none'}`:''));
     return `- id=${s.id} "${s.name}" ${s.symbol} tf=${s.tf} ${s.enabled?'ENABLED':'disabled'}${inPos?' IN-POSITION':''} | ${body} | ${riskText(s.risk)}`;}).join('\n')||'none';
-  const pos=S.positions.map(p=>{const px=RT.price[p.symbol];return `- ${p.symbol} "${p.sname}" entry ${fp(p.entry)} now ${fp(px)} pnl ${pct(px?(p.qty*px/p.cost-1)*100:NaN)}`;}).join('\n')||'none';
+  const pos=S.positions.map(p=>{const px=RT.price[p.symbol];return `- ${p.symbol} "${p.sname}" ${isPerp(p)?(p.dir>0?'LONG ':'SHORT ')+p.lev+'x liq '+fp(p.liq)+' ':''}entry ${fp(p.entry)} now ${fp(px)} pnl ${pct(px?posPnl(p,px)/p.cost*100:NaN)}`;}).join('\n')||'none';
   const today=S.trades.filter(t=>t.exitAt>=startOfDay()&&t.mode===S.settings.mode);
   const bt=S.lastBacktest?`"${S.lastBacktest.name}" ${S.lastBacktest.symbol} ${S.lastBacktest.tf} ${S.lastBacktest.bars} bars: net ${pct(S.lastBacktest.netPct)}, ${S.lastBacktest.trades} trades, win ${f2(S.lastBacktest.winRate)}%, profit factor ${S.lastBacktest.pf==null?'inf':f2(S.lastBacktest.pf)}, max drawdown ${f2(S.lastBacktest.maxDD)}%, buy&hold ${pct(S.lastBacktest.bh)}`:'none';
   return `STATE (${new Date().toLocaleString()})
@@ -1526,8 +1665,12 @@ function aiBuildStrategy(a,base){const s=base?clone(base):{id:uid(),enabled:fals
   if(a.sl_pct>0){r.slType='pct';r.sl=+a.sl_pct;}else if(a.sl_atr>0){r.slType='atr';r.sl=+a.sl_atr;}
   if(a.tp_pct>0){r.tpType='pct';r.tp=+a.tp_pct;}else if(a.tp_atr>0){r.tpType='atr';r.tp=+a.tp_atr;}
   if(a.trail_pct!=null&&a.trail_pct>=0)r.trail=+a.trail_pct;
+  if(a.market==='perp'||a.market==='spot')s.market=a.market;
+  if(Array.isArray(a.short_entry)&&(a.short_entry.length||!base)){s.shortEntry=a.short_entry.map(parseCond);if(s.shortEntry.length)s.market='perp';}
+  if(Array.isArray(a.short_exit)&&(a.short_exit.length||!base))s.shortExit=a.short_exit.map(parseCond);
+  if(a.leverage>0){s.lev=Math.max(1,Math.min(+S.settings.perp.maxLev||50,Math.round(a.leverage)));s.market='perp';}
   if(a.cooldown!=null&&a.cooldown>=0)r.cooldown=Math.round(a.cooldown);
-  if(s.type==='rules'&&!s.entry.length)throw new Error('a rules strategy needs at least one entry condition');
+  if(s.type==='rules'&&!s.entry.length&&!(s.market==='perp'&&(s.shortEntry||[]).length))throw new Error('a rules strategy needs at least one entry condition');
   return s;}
 async function chatBacktest(s,bars,msg){const card={t:'run',text:`Backtesting **${s.name}**…`};msg.cards.push(card);renderChat();
   const o={...btOpts(),bars:Math.max(200,Math.min(10000,Math.round(+bars||1000)))};
@@ -1592,8 +1735,8 @@ function stratCardHtml(c){const s=S.strategies.find(x=>x.id===c.sid);if(!s)retur
 function cardHtml(c){switch(c.t){
   case 'strat':return stratCardHtml(c);
   case 'bt':{const x=c.stats;const t=(k,v,cl='')=>`<div><span>${k}</span><b class="${cl}">${v}</b></div>`;
-    return `<div class="card bt"><b>Backtest: ${esc(c.name)}</b><div class="meta">${esc(c.sym)} ${c.tf} · last ${c.bars} candles</div><div class="minitiles">
-      ${t('Net',pct(x.netPct),cls(x.net))}${t('Trades',x.trades)}${t('Win rate',f2(x.winRate)+'%')}${t('Profit factor',isFinite(x.pf)?f2(x.pf):'∞',x.pf>=1?'up':'down')}${t('Max DD','−'+f2(x.maxDD)+'%','down')}${t('Buy & hold',pct(x.bh),cls(x.bh))}</div>
+    return `<div class="card bt"><b>Backtest: ${esc(c.name)}</b><div class="meta">${esc(c.sym)} ${c.tf} · last ${c.bars} candles${x.perp?` · perp ${x.lev}x`:''}</div><div class="minitiles">
+      ${x.perp?t('Long/short',`${x.longs}/${x.shorts}`)+t('Liquidations',x.liqs,x.liqs?'down':''):''}${t('Net',pct(x.netPct),cls(x.net))}${t('Trades',x.trades)}${t('Win rate',f2(x.winRate)+'%')}${t('Profit factor',isFinite(x.pf)?f2(x.pf):'∞',x.pf>=1?'up':'down')}${t('Max DD','−'+f2(x.maxDD)+'%','down')}${t('Buy & hold',pct(x.bh),cls(x.bh))}</div>
       <div class="acts"><button class="sm" data-cact="showbt" data-sid="${c.sid}">Show on chart</button><button class="sm ghost" data-cact="details">Details</button></div></div>`;}
   case 'confirm':{const st=c.state||(RT.pending[c.id]?null:'expired');
     return `<div class="card confirm">${md(c.text)}<div class="acts">${st?`<span class="muted">${st==='yes'?'✓ Confirmed':st==='no'?'Cancelled':'Expired (page was reloaded)'}</span>`:
@@ -1705,7 +1848,8 @@ function wire(){
   $('#tab-positions').addEventListener('click',e=>{const b=e.target.closest('[data-close]');if(!b)return;const p=S.positions.find(x=>x.id===b.dataset.close);
     if(p&&confirm(`Close ${p.symbol} (${p.sname}) at market${p.mode==='live'?' with a REAL order':''}?`))closePosition(p,'manual');});
   $$('#edType button').forEach(b=>b.onclick=()=>setEdType(b.dataset.v));
-  $$('[data-add]').forEach(b=>b.onclick=()=>{const w=b.dataset.add;draft[w].push(w==='entry'?{a:O('rsi',[14]),op:'<',b:num(70)}:{a:O('rsi',[14]),op:'>',b:num(75)});renderConds(w);});
+  $$('[data-add]').forEach(b=>b.onclick=()=>{const w=b.dataset.add;(draft[w]||(draft[w]=[])).push({entry:{a:O('rsi',[14]),op:'<',b:num(70)},exit:{a:O('rsi',[14]),op:'>',b:num(75)},shortEntry:{a:O('rsi',[14]),op:'>',b:num(30)},shortExit:{a:O('rsi',[14]),op:'<',b:num(25)}}[w]);renderConds(w);});
+  $('#edMarket').onchange=renderMarket;$('#edLev').oninput=renderMarket;
   $('#edCancel').onclick=()=>$('#dlg').close();$('#edSave').onclick=saveEditor;
   $('#btRun').onclick=runBacktest;
   $('#btShow').onclick=()=>{const m=RT.btMarkers;if(!m)return;const go=()=>{setChartTf(m.tf);drawMarkers();};
@@ -1849,12 +1993,13 @@ const FX={gl:null,u:{},bg:null,c2:null,ctx:null,bolts:[],sparks:[],rings:[],come
 };
 
 /* ---------- version, roadmap, live-build status ---------- */
-const APP={version:'2.1',
-  notes:['Living fluid background: it swirls around your pointer and leans green or red with each price tick','Tick ripples, comets, heat lightning and more frequent strikes','Micro-animations across panels, buttons, tabs and the trend matrix','Version and roadmap in the app, plus a LIVE BUILD mode while updates are shipping'],
+const APP={version:'2.2',
+  notes:['Perpetual futures on paper: go long or short with 1 to 50x leverage','Liquidation price on every position, with a warning when price gets within 2%','Live Binance funding rates, settled every 8 hours (00:00, 08:00, 16:00 UTC)','Short entry and exit rules in the editor, in code (ctx.short()) and in Zeus chat','Backtests handle shorts, leverage, liquidations and funding','New preset: Perp 5x EMA trend both ways'],
   roadmap:[
     {v:'2.0',t:'Multi-timeframe terminal, strategies, backtests, Zeus chat'},
     {v:'2.1',t:'Living background and micro-animations'},
     {v:'2.2',t:'Shorting and crypto perpetual futures on paper: up to 50x, liquidation price, funding'},
+    {v:'2.2.1',t:'Street Zeus intro trailer, and something hidden. Say the magic words.'},
     {v:'2.3',t:'Perps toolkit: position-size and liquidation calculator, margin view'},
     {v:'2.4',t:'NSE via Upstox: NIFTY, BANKNIFTY and stock charts'},
     {v:'2.5',t:'NSE F&O paper trading: options by strike and expiry, futures'},

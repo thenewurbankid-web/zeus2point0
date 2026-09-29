@@ -1,10 +1,10 @@
 {
- "version": "2.1",
- "version_title": "Living background and micro-animations",
+ "version": "2.2",
+ "version_title": "Perps on paper: long/short, up to 50x, liquidation, funding",
  "live": true,
- "live_until": "2026-09-29T20:32:07Z",
- "building": "v2.2: shorting + crypto perps on paper (up to 50x)",
- "next": "2.2",
- "next_title": "Perps paper trading",
- "deployed_at": "2026-09-29T20:07:07Z"
+ "live_until": "2026-09-29T20:41:29Z",
+ "building": "v2.2.1: intro trailer + a hidden surprise",
+ "next": "2.2.1",
+ "next_title": "Intro trailer + hidden surprise",
+ "deployed_at": "2026-09-29T20:16:29Z"
 }
