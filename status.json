@@ -1,10 +1,10 @@
 {
- "version": "2.2.4",
- "version_title": "Walking mascot + gritty comic game",
+ "version": "2.2.5",
+ "version_title": "Black & gold graffiti",
  "live": true,
- "live_until": "2026-09-29T21:12:24Z",
- "building": "v2.2.5: GBA Zelda-style Episode 1",
- "next": "2.2.5",
+ "live_until": "2026-09-29T21:19:28Z",
+ "building": "v2.2.6: GBA Zelda-style Episode 1",
+ "next": "2.2.6",
  "next_title": "GBA Zelda-style Episode 1",
- "deployed_at": "2026-09-29T20:47:24Z"
+ "deployed_at": "2026-09-29T20:54:28Z"
 }
