@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Zeus 2.2.1</title>
+<title>Zeus 2.2.2</title>
 <meta name="description" content="Multi-timeframe crypto day-trading terminal with an in-browser AI copilot.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=Permanent+Marker&display=swap">
@@ -345,6 +345,15 @@ body.nofx .panel::after,body.nofx .top::after{display:none}
 .mascot .bubble{order:2;margin-bottom:92px;max-width:260px;padding:10px 13px;border-radius:14px 14px 14px 4px;background:rgba(14,15,21,.86);border:1px solid rgba(243,213,138,.4);box-shadow:0 0 24px -6px rgba(243,213,138,.5);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);font:400 15px "Permanent Marker",cursive;color:#f3d58a;letter-spacing:.02em}
 .mascot .bubble form{display:flex;gap:6px;margin-top:8px}.mascot .bubble input{flex:1;font:500 13px var(--sans);color:var(--text)}
 #mascotX{position:absolute;left:4px;top:-6px;padding:1px 6px;font-size:11px}
+.reqtab{color:var(--gold)!important}
+.reqgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;padding:4px 0}
+@media (max-width:900px){.reqgrid{grid-template-columns:1fr}}
+.reqform{display:flex;flex-direction:column;gap:9px}.reqform label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted)}
+.reqform textarea{resize:vertical;font:13px/1.45 var(--sans)}
+.req{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;color:var(--text);text-decoration:none;background:rgba(255,255,255,.02);transition:border-color .2s,background .2s,transform .15s}
+.req:hover{border-color:rgba(243,213,138,.4);background:rgba(243,213,138,.05);transform:translateX(2px)}
+.req .votes{font:600 12px var(--mono);min-width:44px;color:var(--gold)}.req .rt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.req.closed{opacity:.6}
 .gold{position:fixed;inset:0;z-index:80;background:#06060d;animation:fade .4s ease}
 .gold canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
 .goldbar{position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:2}.goldbar button{font-size:15px;color:#eceef4}
@@ -373,7 +382,7 @@ input[type=range]{accent-color:#f3d58a;padding:0;border:0;background:none}
       <rect x="1" y="1" width="38" height="38" rx="11" fill="url(#zg3)" stroke="url(#zg1)" stroke-width="1.4"/>
       <path d="M11 10H29V13L20.5 19H25L14 31L17.5 22H13L21 13H11Z" fill="url(#zg2)" filter="url(#zglow)"/>
     </svg>
-    <span class="word">ZEUS</span><span class="ver" id="ver" title="Version and roadmap">2.2.1</span><span class="buildtag" id="buildTag">LIVE BUILD</span>
+    <span class="word">ZEUS</span><span class="ver" id="ver" title="Version and roadmap">2.2.2</span><span class="buildtag" id="buildTag">LIVE BUILD</span>
   </div>
   <span class="vsep"></span>
   <input id="symbol" list="symlist" spellcheck="false" title="Binance spot symbol, e.g. BTCUSDT">
@@ -441,6 +450,7 @@ input[type=range]{accent-color:#f3d58a;padding:0;border:0;background:none}
       <button data-tab="backtest">Backtest</button>
       <button data-tab="activity">Activity<span class="cnt" id="cntAct">0</span></button>
       <button data-tab="settings">Settings</button>
+      <button data-tab="requests" class="reqtab">💡 Requests</button>
     </nav>
     <div class="tab on" id="tab-positions"></div>
     <div class="tab" id="tab-orders"></div>
@@ -464,6 +474,26 @@ input[type=range]{accent-color:#f3d58a;padding:0;border:0;background:none}
       </div>
     </div>
     <div class="tab log" id="tab-activity"></div>
+    <div class="tab" id="tab-requests">
+      <div class="reqgrid">
+        <form id="reqForm" class="reqform">
+          <h4 style="margin-top:4px">Ask for a feature</h4>
+          <p class="note">Your request goes straight to the Zeus GitHub project as an issue. GitHub opens in a new tab with everything filled in. Sign in there and press <b>Create</b> to send it.</p>
+          <label>Title<input id="reqTitle" maxlength="100" placeholder="e.g. Replay mode with a speed slider" required></label>
+          <label>Area<select id="reqArea">
+            <option>Charts &amp; trend matrix</option><option>Strategies &amp; backtests</option><option>Paper trading &amp; perps</option><option>Zeus AI chat</option>
+            <option>Markets (NSE, Coinbase, more)</option><option>Training &amp; learning</option><option>Look &amp; feel</option><option>Other</option></select></label>
+          <label>What do you want?<textarea id="reqDetails" rows="4" maxlength="1500" placeholder="Describe it and how you'd use it" required></textarea></label>
+          <label>Why it matters <span class="muted">(optional)</span><textarea id="reqWhy" rows="2" maxlength="600"></textarea></label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="primary" id="reqSend">Send to GitHub ↗</button><span class="note" id="reqNote" style="margin:0"></span></div>
+        </form>
+        <div class="reqlist">
+          <div style="display:flex;align-items:center;gap:8px"><h4 style="margin:4px 0;flex:1">What the homies asked for</h4><button class="sm ghost" id="reqRefresh">Refresh</button></div>
+          <div id="reqItems"><div class="empty">Loading requests…</div></div>
+          <p class="note">Add a 👍 on GitHub to vote. The most-voted requests get built first.</p>
+        </div>
+      </div>
+    </div>
     <div class="tab" id="tab-settings">
       <div class="settings">
         <fieldset><legend>Risk limits (all strategies)</legend>
@@ -1399,7 +1429,22 @@ function renderTrades(){const el=$('#tab-trades');const tr=S.trades.filter(t=>t.
     tr.slice(0,300).map(t=>`<tr><td>${dtstr(t.exitAt)}</td><td>${t.symbol}</td><td>${isPerp(t)?`<span class="side ${t.dir>0?'l':'s'}">${t.dir>0?'LONG':'SHORT'} ${t.lev}x</span>`:'<span class="side l">BUY</span>'}</td><td>${esc(t.sname)}</td><td>${fp(t.entry)}</td><td>${fp(t.exit)}</td><td class="${cls(t.pnl)}">${money(t.pnl)}</td><td class="${cls(t.pnl)}">${pct(t.pnlPct)}</td><td>${esc(t.reason)}</td><td>${dur(t.exitAt-t.openedAt)}</td></tr>`).join('')}</tbody></table>`;}
 function renderActivity(){$('#cntAct').textContent=S.log.length;const el=$('#tab-activity');
   el.innerHTML=S.log.length?S.log.slice(0,300).map(l=>`<div class="row"><span class="time">${dtstr(l.t)}</span><span class="${l.kind}">${esc(l.msg)}</span></div>`).join(''):'<div class="empty">Nothing yet.</div>';}
-function openTab(name){$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));$$('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+name));}
+function openTab(name){$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));$$('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+name));if(name==='requests')Requests.load();}
+/* ---------- feature requests: GitHub issues on the project repo ---------- */
+const REPO='thenewurbankid-web/zeus2point0';
+const Requests={at:0,
+  // GitHub needs a signed-in user to create an issue, so we open its pre-filled form (template adds the "enhancement" label)
+  send(e){e.preventDefault();const title=$('#reqTitle').value.trim(),details=$('#reqDetails').value.trim();if(!title||!details)return;
+    const q=new URLSearchParams({template:'feature_request.yml',title:'[Request] '+title,area:$('#reqArea').value,details:details+`\n\n_Sent from Zeus ${APP.version}_`,why:$('#reqWhy').value.trim()});
+    window.open(`https://github.com/${REPO}/issues/new?${q}`,'_blank','noopener');
+    $('#reqNote').textContent='GitHub opened in a new tab. Press "Create" there to send it.';FX.at('#reqSend',{rgb:'243,213,138',flash:.4,forks:2,width:1.2});},
+  async load(force){if(!force&&Date.now()-this.at<300000&&this.items)return this.render();const el=$('#reqItems');
+    try{const r=await fetch(`https://api.github.com/repos/${REPO}/issues?labels=enhancement&state=all&per_page=40&sort=created`);if(!r.ok)throw new Error(r.status===403?'GitHub rate limit hit. Try again in a few minutes.':'GitHub said '+r.status);
+      this.items=(await r.json()).filter(i=>!i.pull_request).sort((a,b)=>(b.reactions?.['+1']||0)-(a.reactions?.['+1']||0)||(a.state===b.state?0:a.state==='open'?-1:1));this.at=Date.now();this.render();}
+    catch(err){el.innerHTML=`<div class="empty">Couldn't load requests: ${esc(err.message)}<br><a href="https://github.com/${REPO}/issues?q=label%3Aenhancement" target="_blank" rel="noopener">Open them on GitHub ↗</a></div>`;}},
+  render(){const el=$('#reqItems');if(!this.items.length){el.innerHTML='<div class="empty">No requests yet. Be the first. 👑</div>';return;}
+    el.innerHTML=this.items.map(i=>`<a class="req ${i.state}" href="${esc(i.html_url)}" target="_blank" rel="noopener"><span class="votes">👍 ${i.reactions?.['+1']||0}</span>
+      <span class="rt">${esc(i.title.replace(/^\[Request\]\s*/,''))}</span><span class="tag">${i.state==='closed'?'shipped / closed':'open'}</span><span class="muted">#${i.number}</span></a>`).join('');}};
 
 /* ---------- strategy editor ---------- */
 let draft=null,cm=null;
@@ -2008,14 +2053,16 @@ const FX={gl:null,u:{},bg:null,c2:null,ctx:null,bolts:[],sparks:[],rings:[],come
 };
 
 /* ---------- version, roadmap, live-build status ---------- */
-const APP={version:'2.2.1',
-  notes:['Something is hidden in here. Watch for a visitor in the corner, or double-click the logo.','Perps on paper from 2.2: long and short, 1 to 50x, liquidation price, live funding'],
+const APP={version:'2.2.2',
+  notes:['New 💡 Requests tab: ask for features and they go straight to the Zeus GitHub project','See what everyone asked for, sorted by 👍 votes','Something is still hidden in here. Watch the corner, or double-click the logo.'],
   roadmap:[
     {v:'2.0',t:'Multi-timeframe terminal, strategies, backtests, Zeus chat'},
     {v:'2.1',t:'Living background and micro-animations'},
     {v:'2.2',t:'Shorting and crypto perpetual futures on paper: up to 50x, liquidation price, funding'},
     {v:'2.2.1',t:'Something hidden. Say the magic words.'},
-    {v:'2.2.2',t:'Street Zeus intro trailer when the app opens (skippable)'},
+    {v:'2.2.2',t:'Feature requests straight to GitHub'},
+    {v:'2.2.3',t:'Install as an app, plus smart alerts you set yourself (price, liquidation, trend flips)'},
+    {v:'2.2.4',t:'Street Zeus intro trailer when the app opens (skippable)'},
     {v:'2.3',t:'Perps toolkit: position-size and liquidation calculator, margin view'},
     {v:'2.4',t:'NSE via Upstox: NIFTY, BANKNIFTY and stock charts'},
     {v:'2.5',t:'NSE F&O paper trading: options by strike and expiry, futures'},
@@ -2322,7 +2369,7 @@ function wireMotion(){
     s.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;b.appendChild(s);setTimeout(()=>s.remove(),600);});
   document.addEventListener('pointermove',e=>{const p=e.target.closest&&e.target.closest('.panel');if(!p)return;const r=p.getBoundingClientRect();
     p.style.setProperty('--mx',(e.clientX-r.left)+'px');p.style.setProperty('--my',(e.clientY-r.top)+'px');},{passive:true});
-  wireGame();$('#ver').onclick=openVersion;$('#buildTag').onclick=openVersion;$('#verClose').onclick=()=>$('#verDlg').close();
+  wireGame();$('#reqForm').onsubmit=e=>Requests.send(e);$('#reqRefresh').onclick=()=>Requests.load(true);$('#ver').onclick=openVersion;$('#buildTag').onclick=openVersion;$('#verClose').onclick=()=>$('#verDlg').close();
   BUILD.start();}
 
 /* ---------- boot ---------- */

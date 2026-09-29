@@ -1,0 +1,32 @@
+name: Feature request
+description: Ask for something new in Zeus. Sent from the app or here.
+title: "[Request] "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Charts & trend matrix
+        - Strategies & backtests
+        - Paper trading & perps
+        - Zeus AI chat
+        - Markets (NSE, Coinbase, more)
+        - Training & learning
+        - Look & feel
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What do you want?
+      description: Describe the feature and how you'd use it.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: Optional. What would it help you practise or learn?
