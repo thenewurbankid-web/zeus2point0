@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Zeus 2.0</title>
+<title>Zeus 2.1</title>
 <meta name="description" content="Multi-timeframe crypto day-trading terminal with an in-browser AI copilot.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap">
@@ -261,6 +261,82 @@ details.api pre{background:rgba(0,0,0,.4);padding:10px;border-radius:9px;overflo
 .aiprog .bar{height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin-bottom:5px}
 .aiprog .bar i{display:block;height:100%;width:0;background:var(--grad);transition:width .3s;box-shadow:0 0 10px #6ea8ff}
 .aiprog .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---------- motion: micro-animations ---------- */
+@property --ang{syntax:"<angle>";inherits:false;initial-value:0deg}
+.panel{position:relative}
+/* slow light running around each panel edge */
+.panel::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:5;
+  background:conic-gradient(from var(--ang),transparent 0 70%,rgba(140,175,255,.28) 80%,rgba(181,140,255,.22) 86%,transparent 92%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:orbit 14s linear infinite}
+.matrix::after{animation-delay:-3s}.chartp::after{animation-delay:-7s}.strats::after{animation-delay:-10s}.bottom::after{animation-delay:-5s}
+@keyframes orbit{to{--ang:360deg}}
+/* pointer spotlight */
+.panel::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:4;opacity:0;transition:opacity .4s;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),rgba(130,160,255,.07),transparent 60%)}
+.panel:hover::before{opacity:1}
+/* top bar current */
+.top::after{content:"";position:absolute;left:18px;right:18px;bottom:-1px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(140,175,255,.7),rgba(181,140,255,.6),transparent) 0 0/40% 100% no-repeat;animation:current 6s cubic-bezier(.6,0,.4,1) infinite}
+@keyframes current{from{background-position:-60% 0}to{background-position:160% 0}}
+/* logo: breathing glow, shine sweep, zap on every strike */
+.brand svg{animation:breathe 4.5s ease-in-out infinite}
+@keyframes breathe{50%{filter:drop-shadow(0 0 16px rgba(120,150,255,.75))}}
+.brand .word{background:linear-gradient(100deg,#aeb6cc 35%,#fff 48%,#cfd9ff 52%,#aeb6cc 65%) 0 0/300% 100%;-webkit-background-clip:text;background-clip:text;animation:shine 7s ease-in-out infinite}
+@keyframes shine{0%,55%{background-position:100% 0}100%{background-position:-50% 0}}
+.brand.zap svg{animation:zap .5s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes zap{0%{transform:scale(1)}20%{transform:scale(1.18) rotate(-4deg);filter:drop-shadow(0 0 22px #bcd2ff) brightness(1.6)}60%{transform:scale(.96) rotate(2deg)}100%{transform:none}}
+/* live build session: the bolt gets restless */
+.buildtag{display:none;font:600 9.5px var(--mono);letter-spacing:.12em;color:#ffe4a0;border:1px solid rgba(243,213,138,.45);border-radius:5px;padding:1px 6px;background:rgba(243,213,138,.1);align-items:center;gap:5px;cursor:pointer}
+.buildtag::before{content:"";width:6px;height:6px;border-radius:50%;background:#ffd166;box-shadow:0 0 10px #ffd166;animation:pulse .7s infinite}
+body.building .buildtag{display:inline-flex}
+body.building .brand svg{animation:storm 1.1s steps(1) infinite,charge 1.2s ease-in-out infinite}
+body.building .brand svg path{animation:crackle .23s infinite}
+body.building .brand svg rect{animation:hue 3s linear infinite}
+@keyframes charge{50%{filter:drop-shadow(0 0 20px rgba(255,209,102,.8)) drop-shadow(0 0 6px #bcd2ff)}}
+@keyframes storm{0%{transform:none}8%{transform:translate(1px,-1px) rotate(-3deg) scale(1.08)}12%{transform:translate(-1px,1px) rotate(2deg)}16%{transform:none}52%{transform:scale(1.04)}56%{transform:translate(-1px,0) rotate(-2deg) scale(1.1)}60%{transform:none}}
+@keyframes crackle{50%{opacity:.72}}
+@keyframes hue{to{filter:hue-rotate(360deg)}}
+/* version chip + roadmap */
+.ver{cursor:pointer;transition:.2s}.ver:hover{background:rgba(243,213,138,.16);box-shadow:0 0 14px -2px rgba(243,213,138,.5)}
+.ver .nx{color:var(--muted);margin-left:5px;opacity:.8}
+.verpop{width:min(480px,calc(100vw - 32px))}
+.verpop ul{margin:6px 0 0;padding-left:18px;color:var(--muted);line-height:1.6}
+.verpop .road{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.verpop .road div{display:flex;gap:10px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.02)}
+.verpop .road b{font:600 12px var(--mono);min-width:38px}
+.verpop .road .now{border-color:rgba(243,213,138,.4);background:rgba(243,213,138,.06)}
+.verpop .road .next{border-color:rgba(110,168,255,.4);background:rgba(110,168,255,.06)}
+.verpop .road .done{opacity:.55}
+/* price tick */
+.price.tu{animation:tu .6s ease}.price.td{animation:td .6s ease}
+@keyframes tu{0%{text-shadow:0 0 18px rgba(52,211,153,.9);transform:translateY(-2px)}100%{text-shadow:none;transform:none}}
+@keyframes td{0%{text-shadow:0 0 18px rgba(248,113,113,.9);transform:translateY(2px)}100%{text-shadow:none;transform:none}}
+/* connection ping */
+.dot{position:relative}
+.dot.ok::after{content:"";position:absolute;inset:0;border-radius:50%;border:1px solid var(--up);animation:ping 2s cubic-bezier(0,0,.2,1) infinite}
+@keyframes ping{from{transform:scale(1);opacity:.8}to{transform:scale(3.2);opacity:0}}
+/* changed matrix rows */
+#matrix tr.chg td{animation:chg 1.2s ease}
+@keyframes chg{0%{background:rgba(110,168,255,.16)}100%{background:transparent}}
+.meter{position:relative}
+.meter::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent) 0 0/30% 100% no-repeat;animation:current 3.2s ease-in-out infinite;mix-blend-mode:overlay}
+.scard.on{animation:glowon 3.6s ease-in-out infinite}
+@keyframes glowon{50%{box-shadow:0 0 0 1px rgba(52,211,153,.16),0 0 30px -10px rgba(52,211,153,.8)}}
+/* buttons: lift + ripple */
+button{position:relative;overflow:hidden}
+button:hover:not(:disabled){transform:translateY(-1px)}
+button:active:not(:disabled){transform:translateY(0) scale(.97)}
+.rip{position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(255,255,255,.35),transparent 70%);transform:scale(0);animation:rip .55s ease-out forwards}
+@keyframes rip{to{transform:scale(1);opacity:0}}
+button.primary{background-size:250% 250%;background-image:linear-gradient(135deg,#6ea8ff,#7c6cff,#a78bfa,#6ea8ff);animation:flow 6s ease infinite}
+@keyframes flow{50%{background-position:100% 50%}}
+.tabs button.on{animation:tabin .35s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes tabin{from{transform:scale(.94)}to{transform:none}}
+.chips button{animation:rise .4s both}
+.chips button:nth-child(2){animation-delay:.05s}.chips button:nth-child(3){animation-delay:.1s}.chips button:nth-child(4){animation-delay:.15s}.chips button:nth-child(5){animation-delay:.2s}
+.composer textarea:focus{box-shadow:0 0 0 3px rgba(110,168,255,.15),0 0 30px -8px rgba(124,108,255,.7)}
+body.nofx .panel::after,body.nofx .top::after{display:none}
+.chatlog>*{flex-shrink:0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -269,7 +345,7 @@ details.api pre{background:rgba(0,0,0,.4);padding:10px;border-radius:9px;overflo
 <canvas id="bg"></canvas><canvas id="fx"></canvas><canvas id="bolt"></canvas>
 <div class="app">
 <header class="top">
-  <div class="brand" id="brand" title="Zeus 2.0">
+  <div class="brand" id="brand" title="Zeus">
     <svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true">
       <defs>
         <linearGradient id="zg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9cc8ff"/><stop offset=".55" stop-color="#6a7dff"/><stop offset="1" stop-color="#b58cff"/></linearGradient>
@@ -280,7 +356,7 @@ details.api pre{background:rgba(0,0,0,.4);padding:10px;border-radius:9px;overflo
       <rect x="1" y="1" width="38" height="38" rx="11" fill="url(#zg3)" stroke="url(#zg1)" stroke-width="1.4"/>
       <path d="M11 10H29V13L20.5 19H25L14 31L17.5 22H13L21 13H11Z" fill="url(#zg2)" filter="url(#zglow)"/>
     </svg>
-    <span class="word">ZEUS</span><span class="ver">2.0</span>
+    <span class="word">ZEUS</span><span class="ver" id="ver" title="Version and roadmap">2.1</span><span class="buildtag" id="buildTag">LIVE BUILD</span>
   </div>
   <span class="vsep"></span>
   <input id="symbol" list="symlist" spellcheck="false" title="Binance spot symbol, e.g. BTCUSDT">
@@ -294,7 +370,7 @@ details.api pre{background:rgba(0,0,0,.4);padding:10px;border-radius:9px;overflo
   <div class="eq" id="equity"></div>
   <div class="conn"><span class="dot" id="connDot"></span><span id="connTxt">connecting</span></div>
 </header>
-<div id="banner" class="banner hidden"><span id="bannerTxt"></span><button class="sm" id="bannerX">Dismiss</button></div>
+<div id="banner" class="banner hidden"><span id="bannerTxt"></span><button class="sm primary hidden" id="bannerGo">Reload</button><button class="sm" id="bannerX">Dismiss</button></div>
 
 <main class="grid">
   <section class="panel matrix">
@@ -408,6 +484,7 @@ details.api pre{background:rgba(0,0,0,.4);padding:10px;border-radius:9px;overflo
   </section>
 </main>
 
+<dialog id="verDlg" class="verpop"><div class="dlg"><header><h2>Zeus versions</h2><button class="ghost" id="verClose">Close</button></header><div class="body" id="verBody"></div></div></dialog>
 <dialog id="dlg">
   <div class="dlg">
     <header><h2 id="edTitle">Strategy</h2><div class="seg" id="edType"><button data-v="rules">No-code rules</button><button data-v="code">Code</button></div></header>
@@ -814,7 +891,7 @@ function beep(freq=880,dur=.14){if(!S.settings.sound)return;try{actx=actx||new (
 function alertUser(title,body,kind){toast(title+(body?' — '+body:''),kind==='error'?'e':kind==='trade'?'t':'');
   beep(kind==='error'?300:kind==='trade'?1040:760);
   if(S.settings.notify&&'Notification' in window&&Notification.permission==='granted'){try{new Notification(title,{body});}catch{}}}
-function showBanner(txt){$('#bannerTxt').textContent=txt;$('#banner').classList.remove('hidden');}
+function showBanner(txt,reload){$('#bannerTxt').textContent=txt;$('#bannerGo').classList.toggle('hidden',!reload);$('#banner').classList.remove('hidden');}
 
 /* ---------- market data ---------- */
 function dataHostOrder(){const h=S.settings.dataHost;return h==='auto'?(RT.activeData?[RT.activeData]:['com','vision']):[h];}
@@ -1109,7 +1186,8 @@ function scheduleRender(what){dirty.add(what);if(rafPending)return;rafPending=tr
     if(all||d.has('activity'))renderActivity();
     if(all||d.has('strategies'))renderStrategies();}),wait);}
 function renderPrice(){const p=RT.price[S.settings.symbol];const el=$('#price');const prev=+el.dataset.v||p;
-  el.textContent=fp(p);el.className='price '+(p>prev?'up':p<prev?'down':'');el.dataset.v=p;}
+  el.textContent=fp(p);el.className='price '+(p>prev?'up':p<prev?'down':'');el.dataset.v=p;
+  if(p!==prev&&isFinite(p)&&isFinite(prev)){void el.offsetWidth;el.classList.add(p>prev?'tu':'td');FX.tick(p>prev?1:-1);}}
 function renderHeader(){$$('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.settings.mode));
   const live=S.settings.mode==='live';const lb=$('#liveBadge');lb.classList.toggle('hidden',!live);
   lb.textContent=live?(S.settings.liveHost==='testnet'?'LIVE · TESTNET':'LIVE MONEY'):'';lb.style.background=S.settings.liveHost==='testnet'?'#b45309':'';
@@ -1129,7 +1207,8 @@ function renderMatrix(){const f=RT.feeds[S.settings.symbol];$('#mxSym').textCont
     if(d.score>=2){bull++;sum++;}else if(d.score<=-2){bear++;sum--;}
     return `<tr data-tf="${tf}" class="${tf===S.settings.chartTf?'sel':''}"><td><b>${tf}</b></td><td>${arrow(d.slope)}</td><td>${arrow(d.cross)}</td><td>${arrow(d.st)}</td>
       <td>${isFinite(d.adx)?d.adx.toFixed(0):'—'} ${arrow(d.adxVote)}</td><td class="${d.rsiVote>0?'up':d.rsiVote<0?'down':'muted'}">${isFinite(d.rsi)?d.rsi.toFixed(0):'—'}</td><td>${scoreBadge(d.score)}</td></tr>`;});
-  $('#matrix tbody').innerHTML=rows.join('');
+  const prevRows=RT.mxRows||[];$('#matrix tbody').innerHTML=rows.join('');
+  if(RT.mxSym===S.settings.symbol)$$('#matrix tbody tr').forEach((tr,i)=>{if(prevRows[i]&&prevRows[i]!==rows[i])tr.classList.add('chg');});RT.mxRows=rows;RT.mxSym=S.settings.symbol;
   const n=TFS.length,neutral=n-bull-bear;
   const label=bull>=4?'Strong uptrend':bull>=3?'Uptrend':bear>=4?'Strong downtrend':bear>=3?'Downtrend':bull>bear?'Leaning bullish':bear>bull?'Leaning bearish':'Mixed / ranging';
   $('#conf').innerHTML=`<div class="muted" style="font-size:11px">CONFLUENCE ${sum>0?'+':''}${sum}</div>
@@ -1609,7 +1688,7 @@ function wire(){
   $('#mode').onclick=e=>{const b=e.target.closest('button');if(b)setMode(b.dataset.v);};
   $('#auto').onchange=e=>setAuto(e.target.checked);
   $('#kill').onclick=flattenAll;
-  $('#bannerX').onclick=()=>$('#banner').classList.add('hidden');
+  $('#bannerX').onclick=()=>$('#banner').classList.add('hidden');$('#bannerGo').onclick=()=>location.reload();
   $('#tabs').onclick=e=>{const b=e.target.closest('button');if(b)openTab(b.dataset.tab);};
   $('#newStrat').onclick=()=>openEditor(null);
   const pre=PRESETS('X');$('#presetSel').innerHTML='<option value="">Add a preset strategy…</option>'+pre.map((p,i)=>`<option value="${i}">${esc(p.name)} (${p.tf})</option>`).join('');
@@ -1651,41 +1730,52 @@ function wire(){
 /* =====================================================================
    FX: WebGL storm-cloud background + 2D-canvas lightning
    ===================================================================== */
-const FX={gl:null,prog:null,u:{},bg:null,c2:null,ctx:null,bolts:[],sparks:[],flash:0,flashPos:[.5,.9],t0:performance.now(),last:0,raf:0,
-  reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,nextAmbient:performance.now()+9000,
+const FX={gl:null,u:{},bg:null,c2:null,ctx:null,bolts:[],sparks:[],rings:[],comets:[],flash:0,flashPos:[.5,.9],t0:performance.now(),last:0,raf:0,
+  mouse:[.5,.5],mouseT:[.5,.5],mood:0,moodT:0,energy:0,lastRing:0,
+  reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,nextAmbient:performance.now()+8000,nextHeat:performance.now()+3000,nextComet:performance.now()+2500,
   init(){this.bg=$('#bg');this.c2=$('#fx');this.ctx=this.c2.getContext('2d');this.c3=$('#bolt');this.btx=this.c3.getContext('2d');
     try{this.initGL();}catch(e){this.gl=null;}
     this.resize();addEventListener('resize',()=>this.resize());
-    for(let i=0;i<46;i++)this.sparks.push(this.newSpark(true));
+    for(let i=0;i<70;i++)this.sparks.push(this.newSpark(true));
+    addEventListener('pointermove',e=>{this.mouseT=[e.clientX/this.W,1-e.clientY/this.H];this.mx=e.clientX;this.my=e.clientY;},{passive:true});
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)this.start();});
     this.apply();},
   apply(){const on=S.settings.fx!==false;document.body.classList.toggle('nofx',!on);if(on)this.start();else cancelAnimationFrame(this.raf);},
   initGL(){const gl=this.bg.getContext('webgl',{antialias:false,alpha:false,powerPreference:'low-power'});if(!gl)throw 0;
     const vs=`attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
-    const fs=`precision mediump float;uniform vec2 r;uniform float t;uniform float fl;uniform vec2 fp;
+    // domain-warped fbm = slow ink-in-water fluid; the pointer stirs a gentle vortex, price ticks tint and pulse it
+    const fs=`precision mediump float;uniform vec2 r;uniform float t;uniform float fl;uniform vec2 fp;uniform vec2 m;uniform float mood;uniform float en;
       float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
-      float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p=p*2.02+vec2(1.7,9.2);a*=.5;}return v;}
-      void main(){vec2 uv=gl_FragCoord.xy/r;float asp=r.x/r.y;vec2 p=vec2(uv.x*asp,uv.y)*2.4;
-        float q=fbm(p+vec2(t*.018,t*.006));
-        float c=fbm(p*1.35+q*1.9+vec2(-t*.012,t*.016));
-        vec3 col=vec3(.010,.011,.018);
-        col+=vec3(.045,.065,.16)*smoothstep(.38,.98,c)*(.35+.75*uv.y);
-        col+=vec3(.10,.055,.19)*smoothstep(.52,1.02,q)*.55*(1.-uv.y*.4);
-        col+=vec3(.02,.03,.07)*pow(uv.y,3.)*1.4;
+      float fbm(vec2 p){float v=0.,a=.5;mat2 R=mat2(.8,.6,-.6,.8);for(int i=0;i<5;i++){v+=a*n(p);p=R*p*2.03+vec2(1.7,9.2);a*=.5;}return v;}
+      void main(){vec2 uv=gl_FragCoord.xy/r;float asp=r.x/r.y;vec2 p=vec2(uv.x*asp,uv.y)*1.9;
+        vec2 mm=vec2(m.x*asp,m.y)*1.9;vec2 dm=p-mm;float md=dot(dm,dm);p+=vec2(-dm.y,dm.x)*.55*exp(-md*2.2);
+        float tt=t*.045;
+        vec2 q=vec2(fbm(p+vec2(0.,tt)),fbm(p+vec2(5.2,1.3)-tt*.8));
+        vec2 w=vec2(fbm(p+3.2*q+vec2(1.7,9.2)+tt*1.2),fbm(p+3.2*q+vec2(8.3,2.8)-tt));
+        float f=fbm(p+2.4*w);
+        vec3 ink=mix(vec3(.10,.16,.42),vec3(.30,.13,.46),clamp(q.x*1.4-.2,0.,1.));
+        ink=mix(ink,vec3(.05,.30,.45),clamp(w.y*w.y*1.3,0.,1.)*.55);
+        ink=mix(ink,mood>0.?vec3(.06,.40,.30):vec3(.46,.10,.16),abs(mood)*.35);
+        vec3 col=vec3(.008,.009,.015);
+        float body=smoothstep(.35,1.,f*f*1.7);
+        col+=ink*body*(.30+.22*en)*(.55+.6*uv.y);
+        float rid=pow(1.-abs(f*2.-1.),18.)*smoothstep(.2,.8,length(w));
+        col+=vec3(.55,.68,1.)*rid*(.06+.05*en);
+        col+=vec3(.25,.35,.8)*.05*exp(-md*1.6);
         float d=distance(vec2(uv.x*asp,uv.y),vec2(fp.x*asp,fp.y));
-        col+=vec3(.55,.68,1.)*fl*(.25+c*1.3)*exp(-d*1.5);
-        col+=vec3(.18,.22,.4)*fl*.12;
-        col*=1.-.6*pow(length((uv-.5)*vec2(1.,1.15))*1.2,2.2);
-        col+=(h(gl_FragCoord.xy+fract(t)*91.)-.5)*.014;
+        col+=vec3(.55,.68,1.)*fl*(.2+f*1.2)*exp(-d*1.5);
+        col+=vec3(.18,.22,.4)*fl*.1;
+        col*=1.-.62*pow(length((uv-.5)*vec2(1.,1.15))*1.2,2.2);
+        col+=(h(gl_FragCoord.xy+fract(t)*91.)-.5)*.012;
         gl_FragColor=vec4(max(col,0.),1.);}`;
     const sh=(type,src)=>{const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;};
     const pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,vs));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(pr);gl.useProgram(pr);
     const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
     const loc=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
-    ['r','t','fl','fp'].forEach(k=>this.u[k]=gl.getUniformLocation(pr,k));this.gl=gl;},
+    ['r','t','fl','fp','m','mood','en'].forEach(k=>this.u[k]=gl.getUniformLocation(pr,k));this.gl=gl;},
   resize(){const w=innerWidth,h=innerHeight,dpr=Math.min(2,devicePixelRatio||1);
-    this.bg.width=Math.ceil(w*.5);this.bg.height=Math.ceil(h*.5);   // clouds are soft: half resolution is plenty
+    this.bg.width=Math.ceil(w*.5);this.bg.height=Math.ceil(h*.5);   // the fluid is soft: half resolution is plenty
     for(const c of [this.c2,this.c3]){c.width=Math.ceil(w*dpr);c.height=Math.ceil(h*dpr);}this.ctx.setTransform(dpr,0,0,dpr,0,0);this.btx.setTransform(dpr,0,0,dpr,0,0);this.W=w;this.H=h;
     if(this.gl)this.gl.viewport(0,0,this.bg.width,this.bg.height);this.frame(performance.now(),true);},
   start(){cancelAnimationFrame(this.raf);if(S.settings.fx===false)return;const loop=now=>{this.raf=requestAnimationFrame(loop);this.frame(now);};this.raf=requestAnimationFrame(loop);},
@@ -1693,18 +1783,45 @@ const FX={gl:null,prog:null,u:{},bg:null,c2:null,ctx:null,bolts:[],sparks:[],fla
     const busy=AI.busy||AI.loading;const minDt=this.reduced?1e9:busy?90:33;   // ~30fps, slower while the GPU is running the LLM
     if(!force&&now-this.last<minDt&&!this.bolts.length)return;const dt=Math.min(.1,(now-this.last)/1000||.016);this.last=now;
     const t=(now-this.t0)/1000;
-    if(!this.reduced&&now>this.nextAmbient){this.nextAmbient=now+18000+Math.random()*26000;this.ambient();}
+    if(!this.reduced){
+      if(now>this.nextAmbient){this.nextAmbient=now+14000+Math.random()*16000;this.ambient();}
+      if(now>this.nextHeat){this.nextHeat=now+4000+Math.random()*6000;this.flash=Math.min(1,this.flash+.12+Math.random()*.12);this.flashPos=[Math.random(),.55+Math.random()*.45];}
+      if(now>this.nextComet){this.nextComet=now+2500+Math.random()*4500;this.comet();}}
+    const k=1-Math.pow(.04,dt);this.mouse[0]+=(this.mouseT[0]-this.mouse[0])*k;this.mouse[1]+=(this.mouseT[1]-this.mouse[1])*k;
+    this.moodT*=Math.pow(.6,dt);this.mood+=(this.moodT-this.mood)*k*.5;this.energy*=Math.pow(.25,dt);
     this.flash*=Math.pow(.02,dt);
-    const gl=this.gl;if(gl){gl.uniform2f(this.u.r,this.bg.width,this.bg.height);gl.uniform1f(this.u.t,this.reduced?40:t);gl.uniform1f(this.u.fl,this.flash);gl.uniform2f(this.u.fp,this.flashPos[0],this.flashPos[1]);gl.drawArrays(gl.TRIANGLES,0,3);}
-    this.draw2d(dt);},
-  newSpark(init){return{x:Math.random()*this.W||Math.random()*1400,y:init?Math.random()*(this.H||900):(this.H||900)+10,v:6+Math.random()*14,r:.4+Math.random()*1.1,a:.15+Math.random()*.35,ph:Math.random()*6.28};},
-  draw2d(dt){const c=this.ctx;c.clearRect(0,0,this.W,this.H);const bc=this.btx;if(this.bolts.length||this.hadBolts)bc.clearRect(0,0,this.W,this.H);this.hadBolts=this.bolts.length>0;
+    const gl=this.gl;if(gl){const u=this.u;gl.uniform2f(u.r,this.bg.width,this.bg.height);gl.uniform1f(u.t,this.reduced?40:t);gl.uniform1f(u.fl,this.flash);gl.uniform2f(u.fp,this.flashPos[0],this.flashPos[1]);
+      gl.uniform2f(u.m,this.mouse[0],this.mouse[1]);gl.uniform1f(u.mood,this.mood);gl.uniform1f(u.en,this.energy);gl.drawArrays(gl.TRIANGLES,0,3);}
+    this.draw2d(dt,t);},
+  newSpark(init){return{x:Math.random()*(this.W||1400),y:init?Math.random()*(this.H||900):(this.H||900)+10,v:5+Math.random()*13,r:.35+Math.random()*1.1,a:.12+Math.random()*.35,ph:Math.random()*6.28,vx:0};},
+  // price tick -> a ripple at the price, and the fluid leans green/red for a moment
+  tick(dir){if(this.reduced||S.settings.fx===false||!dir)return;this.moodT=Math.max(-1,Math.min(1,this.moodT+dir*.25));this.energy=Math.min(1,this.energy+.35);
+    const now=performance.now();if(now-this.lastRing<450)return;this.lastRing=now;
+    const el=$('#price');const r=el&&el.getBoundingClientRect();if(!r||!r.width)return;
+    this.rings.push({x:r.left+r.width/2,y:r.top+r.height/2,life:1,rgb:dir>0?'52,211,153':'248,113,113',max:46});},
+  ring(x,y,rgb,max){if(this.reduced||S.settings.fx===false)return;this.rings.push({x,y,life:1,rgb:rgb||'140,175,255',max:max||60});},
+  comet(){const fromL=Math.random()<.5,y=this.H*(.05+Math.random()*.5),x=fromL?-40:this.W+40,sp=260+Math.random()*260;
+    this.comets.push({x,y,vx:(fromL?1:-1)*sp,vy:sp*(.12+Math.random()*.2),life:1,len:60+Math.random()*80});},
+  draw2d(dt,t){const c=this.ctx;c.clearRect(0,0,this.W,this.H);const bc=this.btx;const top=this.bolts.length||this.rings.length;if(top||this.hadTop)bc.clearRect(0,0,this.W,this.H);this.hadTop=top;
     if(!this.reduced){c.globalCompositeOperation='lighter';
-      for(const s of this.sparks){s.y-=s.v*dt;s.ph+=dt*2;if(s.y<-10)Object.assign(s,this.newSpark(false));
-        c.fillStyle=`rgba(150,180,255,${s.a*(.55+.45*Math.sin(s.ph))})`;c.beginPath();c.arc(s.x,s.y,s.r,0,6.283);c.fill();}}
+      for(const s of this.sparks){
+        // drift on a slow curl-like field, and part around the pointer
+        const fx=Math.sin(s.y*.006+t*.35)+Math.cos(s.x*.004-t*.2);s.vx+=(fx*9-s.vx)*dt*.8;
+        if(this.mx!=null){const dx=s.x-this.mx,dy=s.y-this.my,d2=dx*dx+dy*dy;if(d2<14000){const f=(1-d2/14000)*90*dt;s.vx+=dx/Math.sqrt(d2+1)*f*6;s.y+=dy/Math.sqrt(d2+1)*f;}}
+        s.x+=s.vx*dt;s.y-=s.v*dt*(1+this.energy*.8);s.ph+=dt*2.2;if(s.y<-10||s.x<-20||s.x>this.W+20)Object.assign(s,this.newSpark(false));
+        c.fillStyle=`rgba(150,180,255,${s.a*(.5+.5*Math.sin(s.ph))})`;c.beginPath();c.arc(s.x,s.y,s.r,0,6.283);c.fill();}
+      for(const m of this.comets){m.x+=m.vx*dt;m.y+=m.vy*dt;m.life-=dt*.45;const a=Math.max(0,Math.sin(Math.min(1,m.life)*Math.PI))*.55;
+        const n=Math.hypot(m.vx,m.vy),tx=m.x-m.vx/n*m.len,ty=m.y-m.vy/n*m.len;const g=c.createLinearGradient(tx,ty,m.x,m.y);
+        g.addColorStop(0,'rgba(140,170,255,0)');g.addColorStop(1,`rgba(210,225,255,${a})`);c.strokeStyle=g;c.lineWidth=1.1;c.beginPath();c.moveTo(tx,ty);c.lineTo(m.x,m.y);c.stroke();}
+      this.comets=this.comets.filter(m=>m.life>0);}
+    bc.globalCompositeOperation='lighter';
+    for(const g of this.rings){g.life-=dt*1.5;const a=Math.max(0,g.life),rad=6+(1-a)*g.max;
+      bc.strokeStyle=`rgba(${g.rgb},${.55*a*a})`;bc.lineWidth=1.2;bc.beginPath();bc.arc(g.x,g.y,rad,0,6.283);bc.stroke();
+      bc.strokeStyle=`rgba(${g.rgb},${.18*a})`;bc.lineWidth=5;bc.beginPath();bc.arc(g.x,g.y,rad*.8,0,6.283);bc.stroke();}
+    this.rings=this.rings.filter(g=>g.life>0);
     for(const b of this.bolts){b.life-=dt*b.decay;const a=Math.max(0,b.life);if(!a)continue;
       const flick=b.life>.6?(Math.random()>.35?1:.35):1;
-      bc.globalCompositeOperation='lighter';bc.lineJoin='round';bc.lineCap='round';
+      bc.lineJoin='round';bc.lineCap='round';
       for(const [pts,w] of b.paths){
         bc.strokeStyle=`rgba(${b.rgb},${.3*a*flick})`;bc.lineWidth=w*7;bc.shadowColor=`rgba(${b.rgb},1)`;bc.shadowBlur=28;this.path(bc,pts);bc.stroke();
         bc.shadowBlur=8;bc.shadowColor='rgba(255,255,255,.9)';bc.strokeStyle=`rgba(240,245,255,${.95*a*flick})`;bc.lineWidth=w;this.path(bc,pts);bc.stroke();bc.shadowBlur=0;}}
@@ -1722,18 +1839,65 @@ const FX={gl:null,prog:null,u:{},bg:null,c2:null,ctx:null,bolts:[],sparks:[],fla
       const ang=Math.atan2(y1-y0,x1-x0)+(Math.random()-.5)*1.6,fl=len*(.15+Math.random()*.25);
       paths.push([this.jag(sx,sy,sx+Math.cos(ang)*fl,sy+Math.sin(ang)*fl,fl*.35,5),(opt.width||1.6)*.55]);}
     this.bolts.push({paths,life:1,decay:opt.decay||1.6,rgb:opt.rgb||'140,175,255'});
+    if(opt.ring!==false&&y1>0)this.ring(x1,y1,opt.rgb,80);
     this.flash=Math.min(1.2,this.flash+(opt.flash??.8));this.flashPos=[x1/this.W,1-y1/this.H];
+    const br=$('#brand');if(br){br.classList.remove('zap');void br.offsetWidth;br.classList.add('zap');}
     if(!this.raf)this.start();},
   at(sel,opt={}){const el=typeof sel==='string'?$(sel):sel;if(!el)return;const r=el.getBoundingClientRect();if(!r.width)return;
     const x1=r.left+r.width/2,y1=r.top+r.height/2;const x0=x1+(Math.random()-.5)*Math.min(500,this.W*.4),y0=-20;this.strike(x0,y0,x1,y1,opt);},
-  ambient(){const x=this.W*(.1+Math.random()*.8);this.strike(x,-20,x+(Math.random()-.5)*240,this.H*(.15+Math.random()*.3),{width:.9,forks:2,flash:.35,decay:2.4,rgb:'120,150,255'});}
+  ambient(){const x=this.W*(.1+Math.random()*.8);this.strike(x,-20,x+(Math.random()-.5)*240,this.H*(.15+Math.random()*.3),{width:.9,forks:2,flash:.35,decay:2.4,rgb:'120,150,255',ring:false});}
 };
+
+/* ---------- version, roadmap, live-build status ---------- */
+const APP={version:'2.1',
+  notes:['Living fluid background: it swirls around your pointer and leans green or red with each price tick','Tick ripples, comets, heat lightning and more frequent strikes','Micro-animations across panels, buttons, tabs and the trend matrix','Version and roadmap in the app, plus a LIVE BUILD mode while updates are shipping'],
+  roadmap:[
+    {v:'2.0',t:'Multi-timeframe terminal, strategies, backtests, Zeus chat'},
+    {v:'2.1',t:'Living background and micro-animations'},
+    {v:'2.2',t:'Shorting and crypto perpetual futures on paper: up to 50x, liquidation price, funding'},
+    {v:'2.3',t:'Perps toolkit: position-size and liquidation calculator, margin view'},
+    {v:'2.4',t:'NSE via Upstox: NIFTY, BANKNIFTY and stock charts'},
+    {v:'2.5',t:'NSE F&O paper trading: options by strike and expiry, futures'},
+    {v:'2.6',t:'Coinbase charts and paper trading'},
+    {v:'2.7',t:'Training: bar-by-bar replay, challenges, trade journal, stats'}]};
+// status.json is rewritten by every deploy; live_until keeps LIVE BUILD from sticking if a session ends without a final push
+const BUILD={status:null,
+  async poll(){if(location.protocol==='file:')return;
+    try{const r=await fetch('status.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const st=await r.json();this.status=st;this.apply();}catch(e){}},
+  live(){const st=this.status;return !!(st&&st.live&&Date.now()<Date.parse(st.live_until||0));},
+  next(){const st=this.status;const i=APP.roadmap.findIndex(x=>x.v===APP.version);
+    return st&&st.next?{v:st.next,t:st.next_title||''}:APP.roadmap[i+1]||null;},
+  apply(){const live=this.live();document.body.classList.toggle('building',live);const n=this.next();
+    $('#ver').innerHTML=`${APP.version}${n?`<span class="nx">→ ${esc(n.v)}</span>`:''}`;
+    $('#buildTag').title=live?`Live build session: ${this.status.building||'shipping updates'}. New versions land here as they're ready.`:'';
+    const st=this.status;
+    if(st&&st.version&&verCmp(st.version,APP.version)>0&&!this.told){this.told=1;
+      showBanner(`Zeus ${st.version} is live${st.version_title?': '+st.version_title:''}. Reload to get it. Your strategies and paper account are kept.`,true);}
+    if(live&&!this.zapper){this.zapper=setInterval(()=>{if(!document.hidden&&Math.random()<.6)FX.at('#brand',{width:.8,forks:1,flash:.15,decay:3,rgb:Math.random()<.5?'255,209,102':'140,175,255',ring:false});},3500);}
+    if(!live&&this.zapper){clearInterval(this.zapper);this.zapper=null;}},
+  start(){this.apply();this.poll();setInterval(()=>this.poll(),60000);}};
+function verCmp(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d;}return 0;}
+function openVersion(){const n=BUILD.next(),st=BUILD.status,live=BUILD.live();
+  $('#verBody').innerHTML=`<h4 style="margin-top:0">You're on ${APP.version}</h4><ul>${APP.notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+    ${live?`<div class="note warnbox" style="margin-top:12px">⚡ Live build session in progress${st.building?': '+esc(st.building):''}. Updates ship as each milestone is done, and you'll get a reload prompt here.</div>`:''}
+    <h4>Roadmap</h4><div class="road">${APP.roadmap.map(r=>{const c=verCmp(r.v,APP.version);
+      return `<div class="${c<0?'done':c===0?'now':n&&r.v===n.v?'next':''}"><b>${r.v}</b><span>${esc(r.t)}</span>${c===0?'<span class="tag" style="margin-left:auto">now</span>':n&&r.v===n.v?'<span class="tag" style="margin-left:auto">next</span>':''}</div>`;}).join('')}</div>`;
+  $('#verDlg').showModal();}
+/* ---------- micro-interaction wiring ---------- */
+function wireMotion(){
+  document.addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(!b||b.disabled||FX.reduced)return;
+    const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2.2,s=document.createElement('span');s.className='rip';
+    s.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;b.appendChild(s);setTimeout(()=>s.remove(),600);});
+  document.addEventListener('pointermove',e=>{const p=e.target.closest&&e.target.closest('.panel');if(!p)return;const r=p.getBoundingClientRect();
+    p.style.setProperty('--mx',(e.clientX-r.left)+'px');p.style.setProperty('--my',(e.clientY-r.top)+'px');},{passive:true});
+  $('#ver').onclick=openVersion;$('#buildTag').onclick=openVersion;$('#verClose').onclick=()=>$('#verDlg').close();
+  BUILD.start();}
 
 /* ---------- boot ---------- */
 async function boot(){
   if(!window.LightweightCharts){$('#chartMsg').textContent='Chart library failed to load. Check your internet connection and reload.';}
   else initChart();
-  FX.init();wire();wireChat();Engine.init();renderStrategies();renderHeader();scheduleRender('all');openTab('positions');
+  FX.init();wire();wireChat();wireMotion();Engine.init();renderStrategies();renderHeader();scheduleRender('all');openTab('positions');
   if(S.settings.ai.autoLoad&&navigator.gpu)setTimeout(aiLoad,1500);
   if(S.positions.length)showBanner(`${S.positions.length} open position(s) restored. SL/TP are being watched again. Auto-trade stays OFF after a reload until you switch it on.`);
   if(S.settings.mode==='live')refreshAccount(S.settings.symbol).catch(e=>log('Live account check failed: '+e.message,'error'));

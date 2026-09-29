@@ -1,0 +1,10 @@
+{
+ "version": "2.1",
+ "version_title": "Living background and micro-animations",
+ "live": true,
+ "live_until": "2026-09-29T20:32:07Z",
+ "building": "v2.2: shorting + crypto perps on paper (up to 50x)",
+ "next": "2.2",
+ "next_title": "Perps paper trading",
+ "deployed_at": "2026-09-29T20:07:07Z"
+}
