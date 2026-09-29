@@ -1,10 +1,10 @@
 {
- "version": "2.2.2",
- "version_title": "Feature requests straight to GitHub",
+ "version": "2.2.3",
+ "version_title": "Install as an app + alerts you set yourself",
  "live": true,
- "live_until": "2026-09-29T20:50:52Z",
- "building": "v2.2.3: install as app + smart alerts",
- "next": "2.2.3",
- "next_title": "Install as app + smart alerts",
- "deployed_at": "2026-09-29T20:25:52Z"
+ "live_until": "2026-09-29T20:56:33Z",
+ "building": "v2.2.4: cinematic intro trailer",
+ "next": "2.2.4",
+ "next_title": "Cinematic intro trailer",
+ "deployed_at": "2026-09-29T20:31:33Z"
 }

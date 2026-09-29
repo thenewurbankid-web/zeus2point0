@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Zeus 2.2.2</title>
+<title>Zeus 2.2.3</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#040406"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Zeus">
 <meta name="description" content="Multi-timeframe crypto day-trading terminal with an in-browser AI copilot.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=Permanent+Marker&display=swap">
@@ -354,6 +355,16 @@ body.nofx .panel::after,body.nofx .top::after{display:none}
 .req:hover{border-color:rgba(243,213,138,.4);background:rgba(243,213,138,.05);transform:translateX(2px)}
 .req .votes{font:600 12px var(--mono);min-width:44px;color:var(--gold)}.req .rt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .req.closed{opacity:.6}
+.bell{font-size:15px;padding:4px 9px;border-radius:9px;background:transparent;border-color:transparent;filter:grayscale(1) opacity(.7)}
+.bell.live{filter:none}.bell.ring{animation:ring .9s ease}
+@keyframes ring{10%,30%,50%{transform:rotate(18deg)}20%,40%,60%{transform:rotate(-18deg)}80%{transform:none}}
+.alhead,.alquick{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.alquick button{border-radius:999px}
+.alform{display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02);margin:8px 0}
+.alform label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted)}
+.algrid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px}@media (max-width:900px){.algrid{grid-template-columns:1fr}}
+.alrow{display:flex;gap:10px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:rgba(255,255,255,.02);animation:rise .3s both}
+.alrow.off{opacity:.5}.al-d{flex:1;min-width:0;font:12px var(--mono)}.al-m{font-size:11px;white-space:nowrap}
 .gold{position:fixed;inset:0;z-index:80;background:#06060d;animation:fade .4s ease}
 .gold canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
 .goldbar{position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:2}.goldbar button{font-size:15px;color:#eceef4}
@@ -382,7 +393,7 @@ input[type=range]{accent-color:#f3d58a;padding:0;border:0;background:none}
       <rect x="1" y="1" width="38" height="38" rx="11" fill="url(#zg3)" stroke="url(#zg1)" stroke-width="1.4"/>
       <path d="M11 10H29V13L20.5 19H25L14 31L17.5 22H13L21 13H11Z" fill="url(#zg2)" filter="url(#zglow)"/>
     </svg>
-    <span class="word">ZEUS</span><span class="ver" id="ver" title="Version and roadmap">2.2.2</span><span class="buildtag" id="buildTag">LIVE BUILD</span>
+    <span class="word">ZEUS</span><span class="ver" id="ver" title="Version and roadmap">2.2.3</span><span class="buildtag" id="buildTag">LIVE BUILD</span>
   </div>
   <span class="vsep"></span>
   <input id="symbol" list="symlist" spellcheck="false" title="Binance spot symbol, e.g. BTCUSDT">
@@ -391,6 +402,7 @@ input[type=range]{accent-color:#f3d58a;padding:0;border:0;background:none}
   <div class="seg mode" id="mode"><button data-v="paper">Paper</button><button data-v="live">Live</button></div>
   <span id="liveBadge" class="badge live hidden">LIVE MONEY</span>
   <label class="switch big" title="When off, strategies only raise signals"><input type="checkbox" id="auto"><span class="track"></span>Auto-trade</label>
+  <button id="bellBtn" class="bell" title="Alerts">🔔</button><button class="sm ghost installBtn" title="Install Zeus as an app">⬇ Install</button>
   <button id="kill" class="danger" title="Close every open position and turn auto-trade off">Flatten all</button>
   <div class="spacer"></div>
   <div class="eq" id="equity"></div>
@@ -450,6 +462,7 @@ input[type=range]{accent-color:#f3d58a;padding:0;border:0;background:none}
       <button data-tab="backtest">Backtest</button>
       <button data-tab="activity">Activity<span class="cnt" id="cntAct">0</span></button>
       <button data-tab="settings">Settings</button>
+      <button data-tab="alerts">🔔 Alerts<span class="cnt" id="cntAl">0</span></button>
       <button data-tab="requests" class="reqtab">💡 Requests</button>
     </nav>
     <div class="tab on" id="tab-positions"></div>
@@ -474,6 +487,31 @@ input[type=range]{accent-color:#f3d58a;padding:0;border:0;background:none}
       </div>
     </div>
     <div class="tab log" id="tab-activity"></div>
+    <div class="tab" id="tab-alerts">
+      <div class="alhead">
+        <span id="notifState"></span><button class="sm primary" id="notifBtn">Enable notifications</button><button class="sm" id="notifTest">Send a test</button>
+        <span class="vsep"></span><span id="appState"></span><button class="sm installBtn">⬇ Install app</button>
+      </div>
+      <div class="alquick"><span class="muted">Quick:</span>
+        <button class="sm" data-quick="up">🎯 +1% above price</button><button class="sm" data-quick="dn">🎯 −1% below price</button><button class="sm" data-quick="move">⚡ ±1% in 15m</button>
+        <button class="sm" data-quick="trend">📈 1h trend flips</button><button class="sm" data-quick="rsi">🧠 RSI(14) &lt; 30 on 15m</button><button class="sm" data-quick="liq">🩸 Perp within 3% of liq</button>
+        <button class="sm" data-quick="nse">⏰ 09:15 NSE open</button><button class="sm" data-quick="journal">⏰ 21:00 review trades</button></div>
+      <form id="alForm" class="alform">
+        <label>Alert when<select id="alKind"></select></label>
+        <label id="alSymW">Symbol<input id="alSym" style="width:110px;text-transform:uppercase"></label>
+        <label id="alValW"><span id="alValL">Price <b></b></span><input type="number" id="alVal" step="any" style="width:120px"></label>
+        <label id="alMinsW">Within (min)<input type="number" id="alMins" value="15" min="1" max="240"></label>
+        <label id="alTfW">Timeframe<select id="alTf"></select></label>
+        <label id="alDirW">Direction<select id="alDir"><option value="any">either way</option><option value="bull">turns bullish</option><option value="bear">turns bearish</option></select></label>
+        <label id="alRuleW" style="flex:1;min-width:220px">Rule (same language as Zeus chat)<input id="alRule" placeholder="RSI(14) crosses_above 30" spellcheck="false"></label>
+        <label id="alTimeW">Time<input type="time" id="alTime" value="09:15"></label>
+        <label>Repeat<select id="alRepeat"><option value="once">once</option><option value="every">every time (5 min cooldown)</option></select></label>
+        <label style="flex:1;min-width:160px">Note to self<input id="alNote" maxlength="80" placeholder="e.g. check 1h before entering"></label>
+        <button class="primary">Add alert</button>
+      </form>
+      <div class="algrid"><div id="alList"></div><div><h4 style="margin:4px 0 6px">Recent</h4><div id="alLog" class="log"></div>
+        <p class="note">Alerts run while Zeus is open, in any tab or minimized, or installed as an app. Install Zeus and leave it running to get pinged while you do other things. Browsers can't wake a closed web app without a server, so keep it open.</p></div></div>
+    </div>
     <div class="tab" id="tab-requests">
       <div class="reqgrid">
         <form id="reqForm" class="reqform">
@@ -974,14 +1012,14 @@ function loadState(){let s=null;try{s=JSON.parse(localStorage.getItem(LS_KEY)||'
   return{settings,strategies:s.strategies||PRESETS(settings.symbol).slice(0,4).concat(PRESETS(settings.symbol).slice(5)),
     paper:s.paper||{cash:settings.paper.start},positions:(s.positions||[]).map(p=>({...p,closing:false})),
     orders:s.orders||[],trades:s.trades||[],day:s.day||{},log:s.log||[],
-    chat:(s.chat||[]).map(m=>({...m,live:false})),lastBacktest:s.lastBacktest||null,lastResults:s.lastResults||'',lastAiSid:s.lastAiSid||null};}
+    chat:(s.chat||[]).map(m=>({...m,live:false})),lastBacktest:s.lastBacktest||null,lastResults:s.lastResults||'',lastAiSid:s.lastAiSid||null,alerts:s.alerts||[]};}
 const S=loadState();
 let saveTimer=null;
 function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{
   S.orders=S.orders.slice(0,500);S.trades=S.trades.slice(0,1000);S.log=S.log.slice(0,300);
   try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){showBanner('Could not save to browser storage: '+e.message);}},250);}
 
-const RT={perp:{},fundTimer:null,auto:false,feeds:{},price:{},runtime:{},signals:[],lastExit:{},inflight:{},account:null,btMarkers:null,timeOffset:null,activeData:null};
+const RT={alertPx:{},alertLog:[],liqWarned:{},trendSeen:{},perp:{},fundTimer:null,auto:false,feeds:{},price:{},runtime:{},signals:[],lastExit:{},inflight:{},account:null,btMarkers:null,timeOffset:null,activeData:null};
 
 /* ---------- activity log / alerts ---------- */
 function log(msg,kind='info'){S.log.unshift({t:Date.now(),msg,kind});if(S.log.length>300)S.log.length=300;save();scheduleRender('activity');}
@@ -992,7 +1030,7 @@ function beep(freq=880,dur=.14){if(!S.settings.sound)return;try{actx=actx||new (
   o.start();g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+dur);o.stop(actx.currentTime+dur);}catch{}}
 function alertUser(title,body,kind){toast(title+(body?' — '+body:''),kind==='error'?'e':kind==='trade'?'t':'');
   beep(kind==='error'?300:kind==='trade'?1040:760);
-  if(S.settings.notify&&'Notification' in window&&Notification.permission==='granted'){try{new Notification(title,{body});}catch{}}}
+  Notify.show(title,body);}
 function showBanner(txt,reload){$('#bannerTxt').textContent=txt;$('#bannerGo').classList.toggle('hidden',!reload);$('#banner').classList.remove('hidden');}
 
 /* ---------- market data ---------- */
@@ -1038,7 +1076,7 @@ class Feed{
 function getFeed(sym){if(RT.feeds[sym])return RT.feeds[sym].promise;
   const f=new Feed(sym);RT.feeds[sym]=f;f.promise=f.load().then(()=>f).catch(e=>{delete RT.feeds[sym];throw e;});return f.promise;}
 function ensureFeeds(){const need=new Set([S.settings.symbol]);
-  S.strategies.forEach(s=>s.enabled&&need.add(s.symbol));S.positions.forEach(p=>need.add(p.symbol));
+  S.strategies.forEach(s=>s.enabled&&need.add(s.symbol));S.positions.forEach(p=>need.add(p.symbol));S.alerts.forEach(a=>a.on&&a.sym&&need.add(a.sym));
   need.forEach(sym=>getFeed(sym).catch(e=>log(`${sym}: could not load market data (${e.message})`,'error')));
   for(const sym in RT.feeds)if(!need.has(sym)){RT.feeds[sym].close();delete RT.feeds[sym];}}
 
@@ -1071,13 +1109,13 @@ const Engine={
 const closeQueue={};
 function onTick(sym,tf,cd){RT.price[sym]=cd.c;
   if(sym===S.settings.symbol){if(tf===S.settings.chartTf)chartUpdate(cd);if(tf==='1m')renderPrice();}
-  checkStops(sym,cd.c);scheduleRender('positions');}
+  checkStops(sym,cd.c);if(tf==='1m')Alerts.tick(sym,cd.c);scheduleRender('positions');}
 function onCandleClose(sym,tf){const q=closeQueue[sym]||(closeQueue[sym]={tfs:new Set(),timer:null});q.tfs.add(tf);
   clearTimeout(q.timer);
   // wait briefly so candles of several TFs that close together (e.g. on the hour) are all in before evaluating
   q.timer=setTimeout(()=>{const tfs=q.tfs;q.tfs=new Set();
     if(sym===S.settings.symbol){renderMatrix();if(tfs.has(S.settings.chartTf))drawOverlays();}
-    runStrategies(sym,tfs);},600);}
+    runStrategies(sym,tfs);Alerts.close(sym,tfs);},600);}
 async function runStrategies(sym,tfs){const f=RT.feeds[sym];if(!f||!f.ready)return;
   const list=S.strategies.filter(s=>s.enabled&&s.symbol===sym&&tfs.has(s.tf));if(!list.length)return;
   const view=f.view();
@@ -1429,7 +1467,7 @@ function renderTrades(){const el=$('#tab-trades');const tr=S.trades.filter(t=>t.
     tr.slice(0,300).map(t=>`<tr><td>${dtstr(t.exitAt)}</td><td>${t.symbol}</td><td>${isPerp(t)?`<span class="side ${t.dir>0?'l':'s'}">${t.dir>0?'LONG':'SHORT'} ${t.lev}x</span>`:'<span class="side l">BUY</span>'}</td><td>${esc(t.sname)}</td><td>${fp(t.entry)}</td><td>${fp(t.exit)}</td><td class="${cls(t.pnl)}">${money(t.pnl)}</td><td class="${cls(t.pnl)}">${pct(t.pnlPct)}</td><td>${esc(t.reason)}</td><td>${dur(t.exitAt-t.openedAt)}</td></tr>`).join('')}</tbody></table>`;}
 function renderActivity(){$('#cntAct').textContent=S.log.length;const el=$('#tab-activity');
   el.innerHTML=S.log.length?S.log.slice(0,300).map(l=>`<div class="row"><span class="time">${dtstr(l.t)}</span><span class="${l.kind}">${esc(l.msg)}</span></div>`).join(''):'<div class="empty">Nothing yet.</div>';}
-function openTab(name){$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));$$('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+name));if(name==='requests')Requests.load();}
+function openTab(name){if(name==='alerts')Alerts.render();$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));$$('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+name));if(name==='requests')Requests.load();}
 /* ---------- feature requests: GitHub issues on the project repo ---------- */
 const REPO='thenewurbankid-web/zeus2point0';
 const Requests={at:0,
@@ -1585,10 +1623,11 @@ const opToDsl=o=>o.k==='num'?String(o.p[0]):DSL_CANON[o.k]+((o.p||[]).length?`($
 const condToDsl=c=>`${opToDsl(c.a)} ${DSL_OP[c.op]} ${opToDsl(c.b)}`;
 
 /* --- agent prompt + output schema --- */
-const AI_ACTIONS=['create_strategy','create_code_strategy','update_strategy','enable_strategy','delete_strategy','backtest','set_symbol','set_chart_tf','set_auto_trade','close_positions','set_risk_limits','show'];
+const AI_ACTIONS=['create_alert','create_strategy','create_code_strategy','update_strategy','enable_strategy','delete_strategy','backtest','set_symbol','set_chart_tf','set_auto_trade','close_positions','set_risk_limits','show'];
 const AI_SCHEMA={type:'object',properties:{reply:{type:'string'},actions:{type:'array',items:{type:'object',properties:{
   type:{type:'string',enum:AI_ACTIONS},id:{type:'string'},name:{type:'string'},symbol:{type:'string'},tf:{type:'string',enum:TFS},
   entry:{type:'array',items:{type:'string'}},exit:{type:'array',items:{type:'string'}},code:{type:'string'},
+  above:{type:'number'},below:{type:'number'},move_pct:{type:'number'},minutes:{type:'integer'},cond:{type:'string'},time:{type:'string'},note:{type:'string'},
   market:{type:'string',enum:['spot','perp']},leverage:{type:'integer'},short_entry:{type:'array',items:{type:'string'}},short_exit:{type:'array',items:{type:'string'}},
   size_pct:{type:'number'},sl_pct:{type:'number'},sl_atr:{type:'number'},tp_pct:{type:'number'},tp_atr:{type:'number'},trail_pct:{type:'number'},cooldown:{type:'integer'},
   enabled:{type:'boolean'},on:{type:'boolean'},bars:{type:'integer'},max_open:{type:'integer'},daily_loss:{type:'number'},tab:{type:'string'}},required:['type']}}},required:['reply','actions']};
@@ -1607,6 +1646,7 @@ ACTIONS
 - set_auto_trade: on (the user gets a confirm button)
 - close_positions: symbol or "ALL" (the user gets a confirm button)
 - set_risk_limits: max_open, daily_loss (percent)
+- create_alert: notify the user. One of: above (price) | below (price) | move_pct + minutes | cond (a CONDITION string, with tf) | time ("HH:MM" daily reminder, with note). Plus symbol, note. E.g. "ping me if BTC drops 2% in 15 min" -> {type:create_alert,symbol:BTCUSDT,move_pct:2,minutes:15}
 id = a strategy id from STATE, its exact name, or "new" for the strategy you create in the same answer.
 tf = 1m, 5m, 15m, 1h or 4h. A strategy's tf is the candle close that triggers it.
 
@@ -1772,6 +1812,14 @@ async function runActions(actions,msg){let lastNew=null;const push=c=>{msg.cards
     case 'close_positions':{const want=String(a.symbol||'ALL').toUpperCase();const list=S.positions.filter(p=>want==='ALL'||p.symbol===normSym(want));
       if(!list.length){push({t:'info',text:'No matching open positions.'});break;}
       push(confirmCard(`Close ${list.length} position(s) at market (${list.map(p=>p.symbol).join(', ')})?`,async()=>{for(const p of list)await closePosition(p,'closed via assistant');}));break;}
+    case 'create_alert':{const sym=a.symbol?normSym(a.symbol):S.settings.symbol;let al;
+      if(a.above>0)al={kind:'above',sym,val:+a.above};else if(a.below>0)al={kind:'below',sym,val:+a.below};
+      else if(a.move_pct>0)al={kind:'move',sym,val:+a.move_pct,mins:Math.max(1,Math.min(240,a.minutes||15)),repeat:'every'};
+      else if(a.cond)al={kind:'rule',sym,tf:a.tf?normTf(a.tf):'15m',dsl:a.cond,repeat:'every',cool:30};
+      else if(a.time&&/^\d{1,2}:\d{2}$/.test(a.time))al={kind:'remind',time:a.time.padStart(5,'0'),note:a.note||'',repeat:'every'};
+      if(!al){push({t:'err',text:'Alert needs a price, a % move, a rule or a time.'});break;}
+      if(a.note&&al.kind!=='remind')al.note=String(a.note).slice(0,80);
+      const made=Alerts.add(al);push({t:'ok',text:`🔔 Alert set: ${Alerts.describe(made)}${S.settings.notify?'':'. Enable notifications in 🔔 Alerts to get pinged.'}`});break;}
     case 'set_risk_limits':{if(a.max_open>0)S.settings.risk.maxOpen=Math.round(a.max_open);if(a.daily_loss!=null&&a.daily_loss>=0)S.settings.risk.dailyLoss=+a.daily_loss;
       save();bindSettings();push({t:'info',text:`Risk limits: max ${S.settings.risk.maxOpen} open positions, daily loss limit ${S.settings.risk.dailyLoss}%.`});break;}
     case 'show':{const t=String(a.tab||'').toLowerCase();if(t.startsWith('strat'))openRTab('strats');else if(['positions','orders','trades','backtest','activity','settings'].includes(t))openTab(t);break;}
@@ -2053,8 +2101,8 @@ const FX={gl:null,u:{},bg:null,c2:null,ctx:null,bolts:[],sparks:[],rings:[],come
 };
 
 /* ---------- version, roadmap, live-build status ---------- */
-const APP={version:'2.2.2',
-  notes:['New 💡 Requests tab: ask for features and they go straight to the Zeus GitHub project','See what everyone asked for, sorted by 👍 votes','Something is still hidden in here. Watch the corner, or double-click the logo.'],
+const APP={version:'2.2.3',
+  notes:['Install Zeus as an app: ⬇ Install in the top bar (on iPhone: Share → Add to Home Screen)','🔔 Alerts you set yourself: price levels, % moves, trend flips, any chat-style rule, perp liquidation warnings, daily reminders','Ask Zeus in chat: "ping me if BTC drops 2% in 15 minutes"','Works offline for the app shell; live data needs a connection','The mascot got a new all-black fit'],
   roadmap:[
     {v:'2.0',t:'Multi-timeframe terminal, strategies, backtests, Zeus chat'},
     {v:'2.1',t:'Living background and micro-animations'},
@@ -2074,7 +2122,7 @@ const BUILD={status:null,
     try{const r=await fetch('status.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const st=await r.json();this.status=st;this.apply();}catch(e){}},
   live(){const st=this.status;return !!(st&&st.live&&Date.now()<Date.parse(st.live_until||0));},
   next(){const st=this.status;const i=APP.roadmap.findIndex(x=>x.v===APP.version);
-    return st&&st.next?{v:st.next,t:st.next_title||''}:APP.roadmap[i+1]||null;},
+    return st&&st.next&&verCmp(st.next,APP.version)>0?{v:st.next,t:st.next_title||''}:APP.roadmap[i+1]||null;},
   apply(){const live=this.live();document.body.classList.toggle('building',live);const n=this.next();
     $('#ver').innerHTML=`${APP.version}${n?`<span class="nx">→ ${esc(n.v)}</span>`:''}`;
     $('#buildTag').title=live?`Live build session: ${this.status.building||'shipping updates'}. New versions land here as they're ready.`:'';
@@ -2238,19 +2286,20 @@ const Game={on:false,
     c.restore();},
   // a person with a walk cycle. zeus = hero (white beard, gold hoodie, beanie, timbs, chain). goon = red hoodie, bear mask.
   person(c,x,y,dir,ph,who,ko,t,kick=0){c.save();c.translate(x,y);if(ko)c.rotate(dir*-1.2);c.scale(dir,1);
-    const s=Math.sin(ph),hero=who==='zeus',hood=hero?'#d4a017':'#b91c1c',pants=hero?'#1c1c24':'#27272a',boot=hero?'#c8964b':'#111';
-    const leg=(a,front)=>{c.save();c.translate(front?3:-3,-44);c.rotate(a);c.fillStyle=pants;c.fillRect(-5,0,10,26);c.translate(0,24);c.rotate(Math.max(0,-a)*.8);c.fillRect(-5,0,10,20);c.fillStyle=boot;c.fillRect(-6,16,15,8);c.restore();};
+    const s=Math.sin(ph),hero=who==='zeus',hood=hero?'#141418':'#b91c1c',pants=hero?'#0f1116':'#27272a',boot=hero?'#f4f4f7':'#111';
+    const leg=(a,front)=>{c.save();c.translate(front?3:-3,-44);c.rotate(a);c.fillStyle=pants;c.fillRect(-5,0,10,26);c.translate(0,24);c.rotate(Math.max(0,-a)*.8);c.fillRect(-5,0,10,20);c.fillStyle=boot;c.fillRect(-6,16,15,8);if(hero){c.fillStyle='#c9ccd6';c.fillRect(-6,22,15,2);}c.restore();};
     if(kick>0&&kick<1){leg(s*.2,false);c.save();c.translate(4,-44);c.rotate(-1.45);c.fillStyle=pants;c.fillRect(-5,0,11,46);c.fillStyle=boot;c.fillRect(-6,40,16,10);c.restore();
       c.strokeStyle='rgba(243,213,138,.6)';c.lineWidth=2;for(let i=0;i<3;i++){c.beginPath();c.moveTo(20,-50+i*8);c.lineTo(60+i*6,-48+i*8);c.stroke();}}
     else{leg(-s*.6,false);leg(s*.6,true);}
     c.fillStyle=hood;c.beginPath();c.roundRect(-14,-82,28,42,8);c.fill();c.fillStyle='rgba(0,0,0,.18)';c.fillRect(-10,-58,20,10);
+    if(hero){c.strokeStyle='rgba(156,200,255,.35)';c.lineWidth=1.5;c.beginPath();c.roundRect(-14,-82,28,42,8);c.stroke();c.strokeStyle='#d8dae3';c.lineWidth=1;c.beginPath();c.moveTo(-4,-78);c.lineTo(-4,-66);c.moveTo(4,-78);c.lineTo(4,-66);c.stroke();}
     const arm=(a,b)=>{c.save();c.translate(0,-76);c.rotate(a);c.fillStyle=hood;c.fillRect(-4,0,9,22);c.translate(0,20);c.rotate(b);c.fillRect(-4,0,8,18);c.fillStyle=hero?'#c68a5b':'#8d5a3b';c.fillRect(-4,16,8,7);c.restore();};
     arm(s*.7+(kick?-.8:0),-.5);arm(-s*.7+(kick?1.2:0),-.3);
     if(hero){c.strokeStyle='#f3c95a';c.lineWidth=2.5;c.beginPath();c.arc(0,-76,10,.15*Math.PI,.85*Math.PI);c.stroke();c.fillStyle='#f3c95a';c.fillRect(-2,-68,5,7);}
     c.fillStyle=hero?'#c68a5b':'#6b4226';c.beginPath();c.roundRect(-10,-104,20,24,7);c.fill();
     if(hero){c.fillStyle='#f4f4f7';c.beginPath();c.moveTo(-10,-90);c.quadraticCurveTo(-8,-70,3,-68);c.quadraticCurveTo(12,-72,11,-90);c.fill();
       c.fillStyle='#0a0a0f';c.fillRect(-2,-98,13,5);c.fillStyle='rgba(156,200,255,.8)';c.fillRect(2,-97,3,1.5);
-      c.fillStyle='#111';c.beginPath();c.roundRect(-11,-112,22,12,[8,8,2,2]);c.fill();c.fillStyle='#d4a017';c.fillRect(-11,-104,22,3);}
+      c.fillStyle='#0b0b0e';c.beginPath();c.roundRect(-11,-112,22,11,[8,8,2,2]);c.fill();c.fillRect(4,-104,14,3);c.strokeStyle='rgba(156,200,255,.4)';c.lineWidth=1;c.stroke();c.fillStyle='#f3d58a';c.font='700 6px Geist';c.fillText('Z',-2,-104);}
     else{c.fillStyle='#6b4226';c.beginPath();c.arc(-7,-104,4,0,6.28);c.arc(7,-104,4,0,6.28);c.fill();c.fillStyle='#d6b48a';c.beginPath();c.ellipse(5,-92,6,5,0,0,6.28);c.fill();
       c.fillStyle='#000';c.fillRect(2,-99,3,3);c.fillRect(7,-93,3,2);c.fillStyle='#b91c1c';c.beginPath();c.roundRect(-12,-108,10,26,5);c.fill();}
     c.restore();},
@@ -2338,17 +2387,34 @@ const Mascot={on:false,
       // glow halo with orbiting sparks
       const hg=c.createRadialGradient(65,80,4,65,80,62);hg.addColorStop(0,'rgba(243,213,138,.35)');hg.addColorStop(1,'rgba(243,213,138,0)');c.fillStyle=hg;c.fillRect(0,0,130,150);
       for(let i=0;i<6;i++){const a=t*1.6+i*1.047;c.fillStyle=`rgba(${i%2?'156,200,255':'243,213,138'},${.5+.5*Math.sin(t*4+i)})`;c.beginPath();c.arc(65+Math.cos(a)*50,82+Math.sin(a)*34,1.8,0,6.28);c.fill();}
-      c.save();c.translate(65+sx,86+bob);c.scale(1.25,1.25);
-      c.fillStyle='#d4a017';c.beginPath();c.roundRect(-24,12,48,40,12);c.fill();                                      // hoodie
-      c.strokeStyle='#f3c95a';c.lineWidth=2.5;c.beginPath();c.arc(0,16,15,.15*Math.PI,.85*Math.PI);c.stroke();
-      c.fillStyle='#f3c95a';c.beginPath();c.moveTo(-2,28);c.lineTo(5,28);c.lineTo(1,33);c.lineTo(4,33);c.lineTo(-4,41);c.lineTo(-2,35);c.lineTo(-5,35);c.fill();
-      c.fillStyle='#c68a5b';c.beginPath();c.roundRect(-16,-24,32,32,10);c.fill();                                      // face
-      c.fillStyle='#f4f4f7';c.beginPath();c.moveTo(-16,-6);c.quadraticCurveTo(-16,22,0,26);c.quadraticCurveTo(16,22,16,-6);c.quadraticCurveTo(0,4,-16,-6);c.fill();   // beard
-      const blink=(t%4)<.12;c.fillStyle='#07070b';c.fillRect(-14,-14,12,blink?2:7);c.fillRect(2,-14,12,blink?2:7);c.fillRect(-2,-12,4,2);
-      const gl=(t*.6%1);c.fillStyle='rgba(255,255,255,.8)';if(!blink){c.fillRect(-13+gl*9,-13,2,5);c.fillRect(3+gl*9,-13,2,5);}
-      c.fillStyle='#111';c.beginPath();c.roundRect(-17,-34,34,14,[10,10,3,3]);c.fill();c.fillStyle='#d4a017';c.fillRect(-17,-24,34,3);   // beanie
-      c.fillStyle='#f3d58a';c.font='700 8px Geist';c.textAlign='center';c.fillText('Z',0,-26);
-      c.fillStyle='#8a4b2b';c.fillRect(-4,8,8,2);
+      c.save();c.translate(65+sx,14+bob);const sw=Math.sin(t*5.9);
+      const rim=(fn)=>{c.save();c.strokeStyle='rgba(156,200,255,.55)';c.lineWidth=1.4;fn();c.stroke();c.restore();};
+      // white low-tops
+      for(const [x,dx] of [[-13,-1],[5,1]]){c.fillStyle='#f4f4f7';c.beginPath();c.roundRect(x-2+dx,118,19,9,[5,6,2,2]);c.fill();c.fillStyle='#c9ccd6';c.fillRect(x-2+dx,124,19,3);
+        c.fillStyle='#b8bcc8';for(let i=0;i<3;i++)c.fillRect(x+3+dx+i*4,120,2,1.5);}
+      // black jeans
+      c.fillStyle='#0f1116';c.beginPath();c.moveTo(-15,78);c.lineTo(15,78);c.lineTo(17,120);c.lineTo(3,120);c.lineTo(0,92);c.lineTo(-3,120);c.lineTo(-17,120);c.closePath();c.fill();
+      rim(()=>{c.beginPath();c.moveTo(-15,78);c.lineTo(-17,120);c.moveTo(15,78);c.lineTo(17,120);});
+      c.strokeStyle='#262a36';c.lineWidth=1;c.beginPath();c.moveTo(-9,82);c.lineTo(-10,118);c.moveTo(9,82);c.lineTo(10,118);c.stroke();
+      // arms (black sleeves) + hands
+      c.save();c.translate(-19,44);c.rotate(.18+sw*.06);c.fillStyle='#141418';c.beginPath();c.roundRect(-6,0,11,34,5);c.fill();rim(()=>{c.beginPath();c.moveTo(-6,2);c.lineTo(-6,32);});c.fillStyle='#c68a5b';c.beginPath();c.arc(0,37,5,0,6.28);c.fill();c.restore();
+      c.save();c.translate(19,44);c.rotate(-.18-sw*.06-this.jump*.9);c.fillStyle='#141418';c.beginPath();c.roundRect(-5,0,11,34,5);c.fill();rim(()=>{c.beginPath();c.moveTo(6,2);c.lineTo(6,32);});c.fillStyle='#c68a5b';c.beginPath();c.arc(0,37,5,0,6.28);c.fill();c.restore();
+      // black hoodie: hood folds, drawstrings, pocket
+      c.fillStyle='#141418';c.beginPath();c.roundRect(-19,38,38,44,10);c.fill();rim(()=>{c.beginPath();c.roundRect(-19,38,38,44,10);});
+      c.fillStyle='#1d1d24';c.beginPath();c.ellipse(0,40,15,6,0,0,6.28);c.fill();
+      c.strokeStyle='#26262e';c.lineWidth=1.2;c.beginPath();c.moveTo(-11,66);c.lineTo(11,66);c.stroke();
+      c.strokeStyle='#d8dae3';c.lineWidth=1.1;c.beginPath();c.moveTo(-4,42);c.lineTo(-5,54);c.moveTo(4,42);c.lineTo(5,53);c.stroke();
+      // gold chain + bolt pendant
+      c.strokeStyle='#f3c95a';c.lineWidth=2;c.beginPath();c.arc(0,40,11,.2*Math.PI,.8*Math.PI);c.stroke();
+      c.fillStyle='#f3c95a';c.beginPath();c.moveTo(-2,50);c.lineTo(4,50);c.lineTo(1,54);c.lineTo(3,54);c.lineTo(-3,61);c.lineTo(-1,56);c.lineTo(-4,56);c.fill();
+      // head: face, big white beard, shades, black cap
+      c.fillStyle='#c68a5b';c.beginPath();c.roundRect(-13,8,26,26,9);c.fill();
+      c.fillStyle='#f4f4f7';c.beginPath();c.moveTo(-14,20);c.quadraticCurveTo(-15,44,0,47);c.quadraticCurveTo(15,44,14,20);c.quadraticCurveTo(0,29,-14,20);c.fill();
+      c.fillStyle='#8a4b2b';c.fillRect(-3,30,6,1.6);
+      const blink=(t%4)<.12;c.fillStyle='#07070b';c.fillRect(-12,15,10,blink?2:6);c.fillRect(2,15,10,blink?2:6);c.fillRect(-2,16,4,1.6);
+      const gl=(t*.6%1);c.fillStyle='rgba(255,255,255,.8)';if(!blink){c.fillRect(-11+gl*7,16,1.6,4);c.fillRect(3+gl*7,16,1.6,4);}
+      c.fillStyle='#0b0b0e';c.beginPath();c.roundRect(-14,0,28,12,[10,10,2,2]);c.fill();c.beginPath();c.roundRect(-2,9,20,4,2);c.fill();
+      rim(()=>{c.beginPath();c.roundRect(-14,0,28,12,[10,10,2,2]);});c.fillStyle='#f3d58a';c.font='700 7px Geist';c.textAlign='center';c.fillText('Z',-3,9);
       c.restore();};this.raf=requestAnimationFrame(draw);}};
 function wireGame(){let buf='';
   document.addEventListener('keydown',e=>{if(Game.on||e.ctrlKey||e.metaKey||e.key.length!==1)return;buf=(buf+e.key).slice(-40);if(EGG_CHAT.test(buf)){buf='';setTimeout(()=>Game.open(),60);}},true);
@@ -2362,6 +2428,104 @@ function wireGame(){let buf='';
   $('#goldX').onclick=()=>Game.close();$('#goldMute').onclick=()=>Beat.toggle();
   Mascot.init();}
 
+/* ---------- install as an app (PWA) ---------- */
+const PWA={deferred:null,reg:null,
+  init(){if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').then(r=>this.reg=r).catch(()=>{});
+    addEventListener('beforeinstallprompt',e=>{e.preventDefault();this.deferred=e;this.render();});
+    addEventListener('appinstalled',()=>{this.deferred=null;toast('Zeus installed. Open it from your apps like any other.','t');this.render();});
+    navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='open-alerts')openTab('alerts');});
+    this.render();},
+  standalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;},
+  ios(){return /iphone|ipad|ipod/i.test(navigator.userAgent);},
+  async install(){if(this.deferred){this.deferred.prompt();try{await this.deferred.userChoice;}catch{}this.deferred=null;this.render();return;}
+    showBanner(this.ios()?'On iPhone or iPad: tap Share, then "Add to Home Screen". Alerts on iOS need the installed app (iOS 16.4+).':'Use your browser menu → "Install Zeus…" (Chrome, Edge) or "Add to Home screen" (Android).');},
+  render(){const inst=this.standalone();$$('.installBtn').forEach(b=>b.classList.toggle('hidden',inst));const s=$('#appState');if(s)s.innerHTML=inst?'<span class="up">● Installed</span>':'<span class="muted">Running in a browser tab</span>';}};
+/* ---------- notifications ---------- */
+const Notify={
+  state(){return !('Notification' in window)?'unsupported':Notification.permission;},
+  async enable(){if(this.state()==='unsupported'){toast(PWA.ios()?'Install Zeus to your Home Screen first (Share → Add to Home Screen), then enable alerts.':'This browser has no notifications.','e');return false;}
+    let r=Notification.permission;if(r==='default')r=await Notification.requestPermission();
+    S.settings.notify=r==='granted';save();bindSettings?.();Alerts.renderHead();
+    if(r==='granted'){this.show('Zeus alerts are on ⚡','You\'ll get pinged for the alerts you set, while Zeus is open or installed.','zeus-on');return true;}
+    toast('Notifications are blocked. Allow them in your browser\'s site settings for this page.','e');return false;},
+  // service-worker notifications work on Android and in the installed app; plain Notification is the desktop fallback
+  async show(title,body,tag){if(!S.settings.notify||this.state()!=='granted')return false;
+    const opt={body,tag:tag||'zeus-'+Date.now(),icon:'icon-192.png',badge:'icon-192.png',renotify:!!tag,data:{url:location.href}};
+    try{const reg=PWA.reg||await navigator.serviceWorker?.getRegistration();if(reg){await reg.showNotification(title,opt);return true;}}catch{}
+    try{new Notification(title,opt);return true;}catch{return false;}}};
+/* ---------- alerts you set yourself ----------
+   price above/below, % move, trend flip, any chat-style rule, liquidation distance, daily reminders */
+const ALERT_KINDS={above:'Price rises to',below:'Price falls to',move:'Moves ±% within minutes',trend:'Trend flips on timeframe',rule:'Rule is true on candle close',liq:'Perp gets near liquidation',remind:'Daily reminder'};
+const Alerts={
+  describe(a){const s=a.sym;switch(a.kind){
+    case 'above':return `${s} ≥ ${fp(a.val)}`;case 'below':return `${s} ≤ ${fp(a.val)}`;
+    case 'move':return `${s} moves ±${a.val}% within ${a.mins}m`;
+    case 'trend':return `${s} ${a.tf} trend turns ${a.dir==='any'?'bullish or bearish':a.dir==='bull'?'bullish':'bearish'}`;
+    case 'rule':return `${s} ${a.tf}: ${a.dsl}`;case 'liq':return `Any perp within ${a.val}% of liquidation`;
+    case 'remind':return `Every day at ${a.time}${a.note?' · '+a.note:''}`;}return '?';},
+  add(a){a={id:uid(),on:true,repeat:'once',cool:5,last:0,created:Date.now(),...a};if(a.sym)a.sym=normSym(a.sym);
+    if(a.kind==='rule'){a.cond=parseCond(a.dsl);a.dsl=condToDsl(a.cond);}
+    S.alerts.unshift(a);save();ensureFeeds();this.render();log(`Alert set: ${this.describe(a)}`);
+    if(!S.settings.notify)toast('Alert saved. Tap "Enable notifications" in 🔔 Alerts to get pinged outside the app.','');return a;},
+  fire(a,msg){const now=Date.now();if(a.repeat==='every'&&now-a.last<(+a.cool||5)*6e4)return;a.last=now;a.hits=(a.hits||0)+1;if(a.repeat==='once')a.on=false;
+    const title=a.kind==='remind'?'⏰ Zeus reminder':'⚡ '+(a.kind==='liq'?'Liquidation warning':'Zeus alert');const body=msg+(a.note&&a.kind!=='remind'?' · '+a.note:'');
+    RT.alertLog.unshift({t:now,title,body});RT.alertLog.length=Math.min(RT.alertLog.length,50);
+    Notify.show(title,body,'alert-'+a.id);toast(title+': '+body,a.kind==='liq'?'e':'t');beep(a.kind==='liq'?440:1175,.2);
+    FX.at('#bellBtn',{rgb:a.kind==='liq'?'248,113,113':'243,213,138',flash:.5,forks:2,width:1.2});log(`${title}: ${body}`,a.kind==='liq'?'error':'signal');
+    $('#bellBtn')?.classList.add('ring');setTimeout(()=>$('#bellBtn')?.classList.remove('ring'),1200);save();this.render();},
+  tick(sym,px){const prev=RT.alertPx[sym];RT.alertPx[sym]=px;if(prev==null)return;
+    for(const a of S.alerts){if(!a.on||a.sym!==sym)continue;
+      if(a.kind==='above'&&prev<a.val&&px>=a.val)this.fire(a,`${sym} hit ${fp(px)} (above ${fp(a.val)})`);
+      else if(a.kind==='below'&&prev>a.val&&px<=a.val)this.fire(a,`${sym} hit ${fp(px)} (below ${fp(a.val)})`);
+      else if(a.kind==='move'){const c=RT.feeds[sym]?.c['1m'];if(!c||!c.length)continue;const ref=c[Math.max(0,c.length-1-(+a.mins||15))].o,ch=(px/ref-1)*100;
+        if(Math.abs(ch)>=+a.val)this.fire(a,`${sym} ${ch>0?'up':'down'} ${Math.abs(ch).toFixed(2)}% in ${a.mins}m (now ${fp(px)})`);}}
+    for(const a of S.alerts){if(!a.on||a.kind!=='liq')continue;
+      for(const p of S.positions){if(!isPerp(p)||p.symbol!==sym)continue;const d=Math.abs(px-p.liq)/px*100,k=a.id+p.id;
+        if(d<=+a.val&&!RT.liqWarned[k]){RT.liqWarned[k]=1;this.fire({...a,repeat:'every',cool:0},`${p.symbol} ${p.dir>0?'LONG':'SHORT'} ${p.lev}x is ${d.toFixed(2)}% from liquidation (${fp(p.liq)})`);a.last=Date.now();}
+        if(d>+a.val*1.5)delete RT.liqWarned[k];}}},
+  close(sym,tfs){const f=RT.feeds[sym];if(!f||!f.ready)return;
+    for(const a of S.alerts){if(!a.on||a.sym!==sym||!tfs.has(a.tf))continue;
+      if(a.kind==='trend'){const sc=LIB.trendScore(f.closed(a.tf)),st=sc>=2?'bull':sc<=-2?'bear':'flat',k=a.id;const was=RT.trendSeen[k];RT.trendSeen[k]=st;
+        if(was&&was!==st&&st!=='flat'&&(a.dir==='any'||a.dir===st))this.fire(a,`${sym} ${a.tf} trend flipped ${st==='bull'?'BULLISH ▲':'BEARISH ▼'} (score ${sc>0?'+':''}${sc})`);}
+      else if(a.kind==='rule'){try{const r=LIB.evalStrategy({tf:a.tf,type:'rules',market:'spot',entry:[a.cond],exit:[]},f.view(),null,{});
+        if(r.actions.length)this.fire(a,`${sym} ${a.tf}: ${a.dsl} is true (price ${fp(RT.price[sym])})`);}catch(e){}}}},
+  clock(){const d=new Date(),hm=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`,day=d.toDateString();
+    for(const a of S.alerts)if(a.on&&a.kind==='remind'&&a.time===hm&&a.day!==day){a.day=day;this.fire({...a,repeat:'every',cool:0},a.note||'Time to check the charts.');a.last=Date.now();}},
+  quick(k){const sym=S.settings.symbol,px=RT.price[sym];
+    const q={up:{kind:'above',sym,val:+(px*1.01).toPrecision(6)},dn:{kind:'below',sym,val:+(px*.99).toPrecision(6)},move:{kind:'move',sym,val:1,mins:15,repeat:'every',cool:15},
+      trend:{kind:'trend',sym,tf:'1h',dir:'any',repeat:'every',cool:30},rsi:{kind:'rule',sym,tf:'15m',dsl:'RSI(14) < 30',repeat:'every',cool:60},
+      liq:{kind:'liq',val:3,repeat:'every'},nse:{kind:'remind',time:'09:15',note:'NSE opens. Check the trend matrix before the first trade.',repeat:'every'},
+      journal:{kind:'remind',time:'21:00',note:'Review today\'s trades and write one lesson.',repeat:'every'}}[k];
+    if(q.val!=null&&!isFinite(q.val))return toast('Waiting for a live price…','e');this.add(q);},
+  fromForm(e){e.preventDefault();const k=$('#alKind').value,a={kind:k,sym:$('#alSym').value.trim().toUpperCase()||S.settings.symbol,repeat:$('#alRepeat').value,note:$('#alNote').value.trim()};
+    if(['above','below','move','liq'].includes(k)){a.val=+$('#alVal').value;if(!(a.val>0))return toast('Enter a value above 0','e');}
+    if(k==='move')a.mins=Math.max(1,Math.min(240,+$('#alMins').value||15));
+    if(k==='trend'){a.tf=$('#alTf').value;a.dir=$('#alDir').value;}
+    if(k==='rule'){a.tf=$('#alTf').value;a.dsl=$('#alRule').value.trim();try{parseCond(a.dsl);}catch(err){return toast('Rule not understood: '+err.message,'e');}}
+    if(k==='remind'){a.time=$('#alTime').value||'09:15';a.repeat='every';}
+    this.add(a);$('#alNote').value='';},
+  formFields(){const k=$('#alKind').value,show=(id,on)=>$(id).classList.toggle('hidden',!on);
+    show('#alValW',['above','below','move','liq'].includes(k));show('#alMinsW',k==='move');show('#alTfW',k==='trend'||k==='rule');show('#alDirW',k==='trend');show('#alRuleW',k==='rule');show('#alTimeW',k==='remind');show('#alSymW',!['liq','remind'].includes(k));
+    $('#alValL').firstChild.textContent=k==='move'||k==='liq'?'Percent ':'Price ';
+    if((k==='above'||k==='below')&&!$('#alVal').value&&RT.price[S.settings.symbol])$('#alVal').value=+RT.price[S.settings.symbol].toPrecision(6);},
+  renderHead(){const st=Notify.state(),el=$('#notifState');if(!el)return;
+    el.innerHTML=st==='granted'&&S.settings.notify?'<span class="up">● Notifications on</span>':st==='denied'?'<span class="down">● Blocked in browser settings</span>':st==='unsupported'?'<span class="warn">● Not available here</span>':'<span class="muted">● Notifications off</span>';
+    $('#notifBtn').classList.toggle('hidden',st==='granted'&&S.settings.notify);$('#bellBtn')?.classList.toggle('live',!!(S.settings.notify&&st==='granted'));PWA.render();},
+  render(){$('#cntAl')&&($('#cntAl').textContent=S.alerts.filter(a=>a.on).length);const el=$('#alList');if(!el)return;this.renderHead();
+    el.innerHTML=S.alerts.length?S.alerts.map(a=>`<div class="alrow ${a.on?'':'off'}"><label class="switch"><input type="checkbox" data-al="${a.id}" ${a.on?'checked':''}><span class="track"></span></label>
+      <span class="al-k">${a.kind==='liq'?'🩸':a.kind==='remind'?'⏰':a.kind==='trend'?'📈':a.kind==='rule'?'🧠':a.kind==='move'?'⚡':'🎯'}</span><span class="al-d">${esc(this.describe(a))}${a.note&&a.kind!=='remind'?` <span class="muted">· ${esc(a.note)}</span>`:''}</span>
+      <span class="muted al-m">${a.repeat==='every'?'repeats':'once'}${a.last?' · last '+tstr(a.last):''}</span><button class="sm ghost" data-aldel="${a.id}">✕</button></div>`).join('')
+      :'<div class="empty">No alerts yet. Use a quick one above, or ask Zeus: "ping me if BTC drops 2% in 15 minutes".</div>';
+    $('#alLog').innerHTML=RT.alertLog.length?RT.alertLog.slice(0,8).map(l=>`<div class="row"><span class="time">${tstr(l.t)}</span><span>${esc(l.title)}: ${esc(l.body)}</span></div>`).join(''):'<div class="note">Fired alerts show up here.</div>';},
+  wire(){$('#alForm').onsubmit=e=>this.fromForm(e);$('#alKind').onchange=()=>this.formFields();
+    $('#alKind').innerHTML=Object.entries(ALERT_KINDS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');$('#alTf').innerHTML=tfOptions('15m');$('#alSym').value=S.settings.symbol;this.formFields();
+    $('#alList').onclick=e=>{const d=e.target.closest('[data-aldel]');if(d){S.alerts=S.alerts.filter(a=>a.id!==d.dataset.aldel);save();ensureFeeds();this.render();}};
+    $('#alList').onchange=e=>{const t=e.target.closest('[data-al]');if(t){const a=S.alerts.find(x=>x.id===t.dataset.al);if(a){a.on=t.checked;a.last=0;save();this.render();}}};
+    $$('[data-quick]').forEach(b=>b.onclick=()=>this.quick(b.dataset.quick));
+    $('#notifBtn').onclick=()=>Notify.enable();$('#notifTest').onclick=async()=>{const ok=await Notify.show('⚡ Test from Zeus','This is what an alert looks like. Tap it to jump back in.','zeus-test');if(!ok)toast('Enable notifications first.','e');};
+    $$('.installBtn').forEach(b=>b.onclick=()=>PWA.install());$('#bellBtn').onclick=()=>openTab('alerts');
+    setInterval(()=>this.clock(),20000);this.render();}};
+
 /* ---------- micro-interaction wiring ---------- */
 function wireMotion(){
   document.addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(!b||b.disabled||FX.reduced)return;
@@ -2369,7 +2533,7 @@ function wireMotion(){
     s.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;b.appendChild(s);setTimeout(()=>s.remove(),600);});
   document.addEventListener('pointermove',e=>{const p=e.target.closest&&e.target.closest('.panel');if(!p)return;const r=p.getBoundingClientRect();
     p.style.setProperty('--mx',(e.clientX-r.left)+'px');p.style.setProperty('--my',(e.clientY-r.top)+'px');},{passive:true});
-  wireGame();$('#reqForm').onsubmit=e=>Requests.send(e);$('#reqRefresh').onclick=()=>Requests.load(true);$('#ver').onclick=openVersion;$('#buildTag').onclick=openVersion;$('#verClose').onclick=()=>$('#verDlg').close();
+  PWA.init();Alerts.wire();wireGame();$('#reqForm').onsubmit=e=>Requests.send(e);$('#reqRefresh').onclick=()=>Requests.load(true);$('#ver').onclick=openVersion;$('#buildTag').onclick=openVersion;$('#verClose').onclick=()=>$('#verDlg').close();
   BUILD.start();}
 
 /* ---------- boot ---------- */
@@ -2377,6 +2541,7 @@ async function boot(){
   if(!window.LightweightCharts){$('#chartMsg').textContent='Chart library failed to load. Check your internet connection and reload.';}
   else initChart();
   FX.init();wire();wireChat();wireMotion();Engine.init();renderStrategies();renderHeader();scheduleRender('all');openTab('positions');
+  {const h=location.hash.slice(1);if(['alerts','backtest','requests','trades','settings'].includes(h))openTab(h);}
   if(S.settings.ai.autoLoad&&navigator.gpu)setTimeout(aiLoad,1500);
   if(S.positions.length)showBanner(`${S.positions.length} open position(s) restored. SL/TP are being watched again. Auto-trade stays OFF after a reload until you switch it on.`);
   if(S.settings.mode==='live')refreshAccount(S.settings.symbol).catch(e=>log('Live account check failed: '+e.message,'error'));

@@ -1,0 +1,23 @@
+{
+  "name": "Zeus 2.0 — trading practice terminal",
+  "short_name": "Zeus",
+  "description": "Free multi-timeframe trading practice: paper trading, perps, backtests, an AI copilot and alerts. Made for the homies.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#040406",
+  "theme_color": "#040406",
+  "categories": ["finance", "education", "productivity"],
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "Alerts", "url": "./#alerts", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]},
+    {"name": "Backtest", "url": "./#backtest", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]}
+  ]
+}
