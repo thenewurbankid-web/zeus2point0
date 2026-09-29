@@ -1,5 +1,5 @@
 // Zeus service worker: app shell offline, CDN libraries cached, live market/API data always from the network.
-const V='zeus-2.2.3';
+const V='zeus-2.2.4';
 const SHELL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-180.png'];
 const CDN=/^https:\/\/(unpkg\.com|cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|esm\.run|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL).catch(()=>{})).then(()=>self.skipWaiting()));});
